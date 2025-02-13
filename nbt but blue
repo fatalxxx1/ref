@@ -611,7 +611,7 @@ function  ems:Toggle(text,de,callback)
     local ToggleButton2 = Instance.new("TextButton")
 
     ToggleButton2.Parent = ToggleFrame
-    ToggleButton2.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+    ToggleButton2.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     ToggleButton2.BackgroundTransparency = 1
     ToggleButton2.AnchorPoint = Vector2.new(0.5, 0.5)
     ToggleButton2.Position = UDim2.new(1, 0, 0.45, 0)
@@ -628,7 +628,7 @@ function  ems:Toggle(text,de,callback)
 
     TextLabelToggle.Parent = ToggleButton
     TextLabelToggle.Name = "TextLabelToggle"
-    TextLabelToggle.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+    TextLabelToggle.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     TextLabelToggle.AnchorPoint = Vector2.new(0.5, 0.5)
     TextLabelToggle.Position = UDim2.new(0.64, 0, 0.4, 0)
     TextLabelToggle.Size =  UDim2.new(0, 150, 0, 40)
@@ -646,7 +646,7 @@ function  ems:Toggle(text,de,callback)
     local TextButton_2_Toggle = Instance.new("TextButton")
 
     TextButton_2_Toggle.Parent = ToggleButton2
-    TextButton_2_Toggle.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+    TextButton_2_Toggle.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     TextButton_2_Toggle.BorderColor3 = Color3.fromRGB(249, 53, 139)
     TextButton_2_Toggle.BorderSizePixel = 0
     TextButton_2_Toggle.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -663,7 +663,7 @@ function  ems:Toggle(text,de,callback)
 
     TextButton_3_Toggle.Parent = TextButton_2_Toggle
     TextButton_3_Toggle.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    TextButton_3_Toggle.BorderColor3 = Color3.fromRGB(0, 0, 255)
+    TextButton_3_Toggle.BorderColor3 = Color3.fromRGB(255, 0, 0)
     TextButton_3_Toggle.BorderSizePixel = 0
     TextButton_3_Toggle.AnchorPoint = Vector2.new(0.5, 0.5)
     TextButton_3_Toggle.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -802,7 +802,7 @@ function ems:DropDown(text,text2,list,callback)
 
     TextLabelDrop.Parent = DropFrame
     TextLabelDrop.Name = "TextLabelDrop"
-    TextLabelDrop.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+    TextLabelDrop.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     TextLabelDrop.BackgroundTransparency = 1
     TextLabelDrop.AnchorPoint = Vector2.new(0.5, 0.5)
     TextLabelDrop.Position = UDim2.new(0.5, 0, 0.2, 0)
@@ -818,7 +818,7 @@ function ems:DropDown(text,text2,list,callback)
     
     FrameDrop.Name = "FrameDrop"
     FrameDrop.Parent = DropFrame
-    FrameDrop.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+    FrameDrop.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     FrameDrop.BorderSizePixel = 0
     FrameDrop.BackgroundTransparency = 1
     FrameDrop.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -830,7 +830,7 @@ function ems:DropDown(text,text2,list,callback)
     local DropButton = Instance.new("TextButton")
 
     DropButton.Parent = FrameDrop
-    DropButton.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+    DropButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     DropButton.BackgroundTransparency = 1
     DropButton.AnchorPoint = Vector2.new(0.5, 0.5)
     DropButton.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -848,7 +848,7 @@ function ems:DropDown(text,text2,list,callback)
 
     TextLabelDrop2.Parent = DropButton
     TextLabelDrop2.Name = "TextLabelDrop"
-    TextLabelDrop2.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+    TextLabelDrop2.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     TextLabelDrop2.BackgroundTransparency = 1
     TextLabelDrop2.AnchorPoint = Vector2.new(0.5, 0.5)
     TextLabelDrop2.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -1120,7 +1120,7 @@ end
     listDropButton.Size = UDim2.new(0, 155, 0, 24)
     listDropButton.Font = Enum.Font.GothamSemibold
     listDropButton.Text = tostring(text2)
-    listDropButton.TextColor3 = Color3.fromRGB(0, 0, 255)
+    listDropButton.TextColor3 = Color3.fromRGB(255, 0, 0)
     listDropButton.TextSize = 11.000
     listDropButton.AutoButtonColor = false 
     listDropButton.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -1226,7 +1226,7 @@ function ems:Slder(text,min,max,de,callback)
 
     TalabelSlider.Parent = SliderFrame
     TalabelSlider.Name = "TalabelSlider"
-    TalabelSlider.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+    TalabelSlider.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     TalabelSlider.BackgroundTransparency = 1
     TalabelSlider.AnchorPoint = Vector2.new(0.5, 0.5)
     TalabelSlider.Position = UDim2.new(0.5, 0, 0.2, 0)
@@ -1271,7 +1271,7 @@ function ems:Slder(text,min,max,de,callback)
 
     MainValue.Name = "MainValue"
     MainValue.Parent = SecValue
-    MainValue.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+    MainValue.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     MainValue.BorderSizePixel = 0
     MainValue.BackgroundTransparency = 0
     -- MainValue.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -1330,7 +1330,7 @@ function ems:Slder(text,min,max,de,callback)
                     
     MheeFrameStroke1.Thickness = 1
     MheeFrameStroke1.LineJoinMode = Enum.LineJoinMode.Round
-    MheeFrameStroke1.Color = Color3.fromRGB(0, 0, 255)
+    MheeFrameStroke1.Color = Color3.fromRGB(255, 0, 0)
     MheeFrameStroke1.Transparency = 0
 
     local CustomValue = Instance.new("TextBox")
@@ -1477,7 +1477,7 @@ function ems:Ti(text)
     local  lineframe2 = Instance.new("TextLabel")
                   
     lineframe2.Parent = tiframe
-    lineframe2.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+    lineframe2.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     lineframe2.BackgroundTransparency = 0
     lineframe2.AnchorPoint = Vector2.new(0.5, 0.5)
     lineframe2.Position = UDim2.new(1, 0, 0.4, 0)
