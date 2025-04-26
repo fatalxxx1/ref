@@ -1,134 +1,138 @@
--- BreezeUI Library
-local BreezeUI = {}
-BreezeUI.__index = BreezeUI
+-- UILib
+local UILib = {}
 
-local function CreateInstance(class, props)
-    local inst = Instance.new(class)
-    for k, v in pairs(props) do
-        inst[k] = v
-    end
-    return inst
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+-- Create base GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "VapeUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+if syn and syn.protect_gui then
+    syn.protect_gui(ScreenGui)
+end
+ScreenGui.Parent = game:GetService("CoreGui")
+
+-- Helper function for dragging
+local function makeDraggable(frame)
+	local dragging, dragInput, dragStart, startPos
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+
+	frame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			dragInput = input
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			local delta = input.Position - dragStart
+			frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+									   startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
 end
 
-function BreezeUI:CreateTopbar(options)
-    local topbar = {}
+-- Main window creation
+function UILib:CreateWindow(title)
+	local Main = Instance.new("Frame")
+	Main.Name = "Main"
+	Main.Size = UDim2.new(0, 500, 0, 300)
+	Main.Position = UDim2.new(0.5, -250, 0.5, -150)
+	Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	Main.BorderSizePixel = 0
+	Main.AnchorPoint = Vector2.new(0.5, 0.5)
+	Main.Parent = ScreenGui
 
-    local screenGui = CreateInstance("ScreenGui", {
-        Name = "BreezeUILib",
-        Parent = game.CoreGui,
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    })
+	makeDraggable(Main)
 
-    local main = CreateInstance("Frame", {
-        Name = options.Name or "Topbar",
-        Parent = screenGui,
-        BackgroundColor3 = Color3.fromRGB(30, 30, 30),
-        Position = UDim2.new(0.3, 0, 0.2, 0),
-        Size = UDim2.new(0, 400, 0, 250),
-        Draggable = true,
-        Active = true
-    })
-    CreateInstance("UICorner", { Parent = main, CornerRadius = UDim.new(0, 20) })
+	local Title = Instance.new("TextLabel")
+	Title.Text = title or "Vape UI"
+	Title.Size = UDim2.new(1, 0, 0, 30)
+	Title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Title.Font = Enum.Font.Gotham
+	Title.TextSize = 16
+	Title.Parent = Main
 
-    local topFrame = CreateInstance("Frame", {
-        Parent = main,
-        BackgroundColor3 = Color3.fromRGB(17, 17, 17),
-        Size = UDim2.new(1, 0, 0, 20)
-    })
-    CreateInstance("UICorner", { Parent = topFrame, CornerRadius = UDim.new(0, 20) })
+	local TabHolder = Instance.new("Frame")
+	TabHolder.Size = UDim2.new(0, 100, 1, -30)
+	TabHolder.Position = UDim2.new(0, 0, 0, 30)
+	TabHolder.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+	TabHolder.Parent = Main
 
-    CreateInstance("TextLabel", {
-        Parent = topFrame,
-        Text = options.Name or "Tab",
-        TextColor3 = Color3.fromRGB(245, 245, 245),
-        Font = Enum.Font.Gotham,
-        TextSize = 12,
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0)
-    })
+	local ContentHolder = Instance.new("Frame")
+	ContentHolder.Size = UDim2.new(1, -100, 1, -30)
+	ContentHolder.Position = UDim2.new(0, 100, 0, 30)
+	ContentHolder.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	ContentHolder.ClipsDescendants = true
+	ContentHolder.Parent = Main
 
-    local contentFrame = CreateInstance("Frame", {
-        Parent = main,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 25),
-        Size = UDim2.new(1, 0, 1, -25)
-    })
-    CreateInstance("UIListLayout", {
-        Parent = contentFrame,
-        Padding = UDim.new(0, 6)
-    })
+	local tabs = {}
 
-    function topbar:AddToggle(data)
-        local button = CreateInstance("TextButton", {
-            Parent = contentFrame,
-            Text = data.Name .. " [OFF]",
-            BackgroundColor3 = Color3.fromRGB(50, 50, 50),
-            TextColor3 = Color3.fromRGB(245, 245, 245),
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            Size = UDim2.new(1, -20, 0, 30)
-        })
-        CreateInstance("UICorner", { Parent = button, CornerRadius = UDim.new(0, 20) })
+	function tabs:CreateTab(name)
+		local button = Instance.new("TextButton")
+		button.Size = UDim2.new(1, 0, 0, 30)
+		button.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+		button.Text = name
+		button.Font = Enum.Font.Gotham
+		button.TextColor3 = Color3.fromRGB(255, 255, 255)
+		button.TextSize = 14
+		button.Parent = TabHolder
 
-        local toggled = false
-        button.MouseButton1Click:Connect(function()
-            toggled = not toggled
-            button.Text = data.Name .. (toggled and " [ON]" or " [OFF]")
-            if data.Callback then data.Callback(toggled) end
-        end)
-    end
+		local tabFrame = Instance.new("Frame")
+		tabFrame.Size = UDim2.new(1, 0, 1, 0)
+		tabFrame.BackgroundTransparency = 1
+		tabFrame.Visible = false
+		tabFrame.Parent = ContentHolder
 
-    function topbar:AddSlider(data)
-        local val = data.Default or data.Min or 0
-        local button = CreateInstance("TextButton", {
-            Parent = contentFrame,
-            Text = data.Name .. ": " .. val,
-            BackgroundColor3 = Color3.fromRGB(50, 50, 50),
-            TextColor3 = Color3.fromRGB(245, 245, 245),
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            Size = UDim2.new(1, -20, 0, 30)
-        })
-        CreateInstance("UICorner", { Parent = button, CornerRadius = UDim.new(0, 20) })
+		button.MouseButton1Click:Connect(function()
+			for _, v in pairs(ContentHolder:GetChildren()) do
+				v.Visible = false
+			end
+			tabFrame.Visible = true
+		end)
 
-        button.MouseButton1Click:Connect(function()
-            val = val + 1
-            if val > data.Max then val = data.Min end
-            button.Text = data.Name .. ": " .. val
-            if data.Callback then data.Callback(val) end
-        end)
-    end
+		local function addToggle(text, default, callback)
+			local toggle = Instance.new("TextButton")
+			toggle.Size = UDim2.new(1, -10, 0, 30)
+			toggle.Position = UDim2.new(0, 5, 0, #tabFrame:GetChildren() * 35)
+			toggle.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+			toggle.Text = "[OFF] " .. text
+			toggle.Font = Enum.Font.Gotham
+			toggle.TextColor3 = Color3.fromRGB(200, 200, 200)
+			toggle.TextSize = 14
+			toggle.Parent = tabFrame
 
-    function topbar:AddButton(data)
-        local button = CreateInstance("TextButton", {
-            Parent = contentFrame,
-            Text = data.Name or "Button",
-            BackgroundColor3 = Color3.fromRGB(70, 70, 70),
-            TextColor3 = Color3.fromRGB(245, 245, 245),
-            Font = Enum.Font.Gotham,
-            TextSize = 12,
-            Size = UDim2.new(1, -20, 0, 30)
-        })
-        CreateInstance("UICorner", { Parent = button, CornerRadius = UDim.new(0, 20) })
+			local state = default or false
+			toggle.MouseButton1Click:Connect(function()
+				state = not state
+				toggle.Text = (state and "[ON] " or "[OFF] ") .. text
+				if callback then
+					callback(state)
+				end
+			end)
+		end
 
-        button.MouseButton1Click:Connect(function()
-            if data.Callback then data.Callback() end
-        end)
-    end
+		tabFrame.addToggle = addToggle
 
-    function BreezeUI:SetWatermark(options)
-        local screenGui = Instance.new("ScreenGui", game.CoreGui)
-        screenGui.Name = "BreezeWatermark"
-        screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+		return tabFrame
+	end
 
-        local label = Instance.new("TextLabel", screenGui)
-        label.BackgroundTransparency = 0.3
-        label.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-        label.TextColor3 = Color3.fromRGB(245, 245, 245)
-        label.Font = Enum.Font.Gotham
-        label.TextSize = 14
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Size = UDim2.new(0, 200, 0, 25)
-        label.Position = UDim2.new(0
-::contentReference[oaicite:11]{index=11}
- 
+	return tabs
+end
+
+return UILib
