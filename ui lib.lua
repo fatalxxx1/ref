@@ -34,7 +34,7 @@ function VapeUI:CreateTopbar(options)
 	local topFrame = CreateInstance("Frame", {
 		Parent = main,
 		BackgroundColor3 = Color3.fromRGB(20, 20, 20),
-		Size = UDim2.new(1, 0, 0, 30)
+		Size = UDim2.new(1, 0, 0, 10)
 	})
 
 	CreateInstance("TextLabel", {
