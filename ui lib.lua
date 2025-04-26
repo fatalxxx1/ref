@@ -119,6 +119,7 @@ function UILib:CreateWindow(title)
 
 		local elements = {}
 
+		-- Add Toggle
 		function elements:AddToggle(text, default, callback)
 			local holder = Instance.new("Frame")
 			holder.Size = UDim2.new(1, -10, 0, 30)
@@ -183,6 +184,97 @@ function UILib:CreateWindow(title)
 			-- Initial visual update
 			updateVisual()
 			tabFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+		end
+
+		-- Add Label
+		function elements:AddLabel(text)
+			local label = Instance.new("TextLabel")
+			label.Size = UDim2.new(1, -10, 0, 30)
+			label.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+			label.BorderSizePixel = 0
+			label.Text = text
+			label.Font = Enum.Font.Gotham
+			label.TextSize = 14
+			label.TextColor3 = Color3.fromRGB(220, 220, 220)
+			label.TextXAlignment = Enum.TextXAlignment.Left
+			label.Parent = tabFrame
+		end
+
+		-- Add Button
+		function elements:AddButton(text, callback)
+			local button = Instance.new("TextButton")
+			button.Size = UDim2.new(1, -10, 0, 30)
+			button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+			button.Text = text
+			button.Font = Enum.Font.Gotham
+			button.TextSize = 14
+			button.TextColor3 = Color3.fromRGB(255, 255, 255)
+			button.BorderSizePixel = 0
+			button.Parent = tabFrame
+
+			button.MouseButton1Click:Connect(function()
+				if callback then callback() end
+			end)
+		end
+
+		-- Add Dropdown
+		function elements:AddDropdown(text, options, callback)
+			local holder = Instance.new("Frame")
+			holder.Size = UDim2.new(1, -10, 0, 30)
+			holder.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+			holder.BorderSizePixel = 0
+			holder.Parent = tabFrame
+
+			local label = Instance.new("TextLabel")
+			label.Position = UDim2.new(0, 0, 0, 0)
+			label.Size = UDim2.new(1, -100, 1, 0)
+			label.BackgroundTransparency = 1
+			label.Text = text
+			label.Font = Enum.Font.Gotham
+			label.TextSize = 14
+			label.TextColor3 = Color3.fromRGB(220, 220, 220)
+			label.TextXAlignment = Enum.TextXAlignment.Left
+			label.Parent = holder
+
+			local dropdownButton = Instance.new("TextButton")
+			dropdownButton.Size = UDim2.new(0, 50, 1, 0)
+			dropdownButton.Position = UDim2.new(1, -55, 0, 0)
+			dropdownButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+			dropdownButton.Text = "▼"
+			dropdownButton.Font = Enum.Font.GothamBold
+			dropdownButton.TextSize = 14
+			dropdownButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+			dropdownButton.BorderSizePixel = 0
+			dropdownButton.Parent = holder
+
+			local optionsList = Instance.new("Frame")
+			optionsList.Size = UDim2.new(1, -10, 0, 100)
+			optionsList.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+			optionsList.Visible = false
+			optionsList.Parent = holder
+
+			for i, option in ipairs(options) do
+				local optionButton = Instance.new("TextButton")
+				optionButton.Size = UDim2.new(1, 0, 0, 25)
+				optionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+				optionButton.Text = option
+				optionButton.Font = Enum.Font.Gotham
+				optionButton.TextSize = 14
+				optionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+				optionButton.BorderSizePixel = 0
+				optionButton.Parent = optionsList
+
+				optionButton.MouseButton1Click:Connect(function()
+					if callback then callback(option) end
+					optionsList.Visible = false
+					dropdownButton.Text = "▼"
+				end)
+			end
+
+			dropdownButton.MouseButton1Click:Connect(function()
+				optionsList.Visible = not optionsList.Visible
+				dropdownButton.Text = optionsList.Visible and "▲" or "▼"
+			end)
 		end
 
 		return elements
