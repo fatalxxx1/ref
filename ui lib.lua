@@ -129,14 +129,14 @@ function UILib:CreateWindow(title)
 			toggle.TextSize = 14
 			toggle.Parent = tabFrame
 
-			tabFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
-
 			local state = default or false
 			toggle.MouseButton1Click:Connect(function()
 				state = not state
 				toggle.Text = (state and "[ON] " or "[OFF] ") .. text
 				if callback then callback(state) end
 			end)
+
+			tabFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
 		end
 
 		return elements
