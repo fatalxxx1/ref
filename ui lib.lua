@@ -186,39 +186,8 @@ function UILib:CreateWindow(title)
 			tabFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
 		end
 
-		-- Add Label
-		function elements:AddLabel(text)
-			local label = Instance.new("TextLabel")
-			label.Size = UDim2.new(1, -10, 0, 30)
-			label.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-			label.BorderSizePixel = 0
-			label.Text = text
-			label.Font = Enum.Font.Gotham
-			label.TextSize = 14
-			label.TextColor3 = Color3.fromRGB(220, 220, 220)
-			label.TextXAlignment = Enum.TextXAlignment.Left
-			label.Parent = tabFrame
-		end
-
-		-- Add Button
-		function elements:AddButton(text, callback)
-			local button = Instance.new("TextButton")
-			button.Size = UDim2.new(1, -10, 0, 30)
-			button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-			button.Text = text
-			button.Font = Enum.Font.Gotham
-			button.TextSize = 14
-			button.TextColor3 = Color3.fromRGB(255, 255, 255)
-			button.BorderSizePixel = 0
-			button.Parent = tabFrame
-
-			button.MouseButton1Click:Connect(function()
-				if callback then callback() end
-			end)
-		end
-
-		-- Add Dropdown
-		function elements:AddDropdown(text, options, callback)
+		-- Add Multi-Select Dropdown
+		function elements:AddMultiSelectDropdown(text, options, callback)
 			local holder = Instance.new("Frame")
 			holder.Size = UDim2.new(1, -10, 0, 30)
 			holder.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -253,28 +222,50 @@ function UILib:CreateWindow(title)
 			optionsList.Visible = false
 			optionsList.Parent = holder
 
+			local selectedOptions = {}
+
+			-- Function to update selected options
+			local function updateVisual()
+				dropdownButton.Text = "▼"
+				for i, option in ipairs(options) do
+					if selectedOptions[option] then
+						dropdownButton.Text = dropdownButton.Text .. "\n" .. option
+					end
+				end
+			end
+
+			-- Create options
 			for i, option in ipairs(options) do
 				local optionButton = Instance.new("TextButton")
-				optionButton.Size = UDim2.new(1, 0, 0, 25)
-				optionButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+				optionButton.Size = UDim2.new(1, 0, 0, 30)
 				optionButton.Text = option
 				optionButton.Font = Enum.Font.Gotham
 				optionButton.TextSize = 14
 				optionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+				optionButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 				optionButton.BorderSizePixel = 0
 				optionButton.Parent = optionsList
 
 				optionButton.MouseButton1Click:Connect(function()
-					if callback then callback(option) end
-					optionsList.Visible = false
-					dropdownButton.Text = "▼"
+					if selectedOptions[option] then
+						selectedOptions[option] = nil
+					else
+						selectedOptions[option] = true
+					end
+					updateVisual()
+					if callback then callback(selectedOptions) end
 				end)
 			end
 
+			-- Toggle dropdown visibility
 			dropdownButton.MouseButton1Click:Connect(function()
 				optionsList.Visible = not optionsList.Visible
 				dropdownButton.Text = optionsList.Visible and "▲" or "▼"
 			end)
+
+			-- Initial update of dropdown visual
+			updateVisual()
+			tabFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
 		end
 
 		return elements
