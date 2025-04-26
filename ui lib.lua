@@ -120,61 +120,70 @@ function UILib:CreateWindow(title)
 		local elements = {}
 
 		function elements:AddToggle(text, default, callback)
-	local holder = Instance.new("Frame")
-	holder.Size = UDim2.new(1, -10, 0, 30)
-	holder.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-	holder.BorderSizePixel = 0
-	holder.Parent = tabFrame
+			local holder = Instance.new("Frame")
+			holder.Size = UDim2.new(1, -10, 0, 30)
+			holder.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+			holder.BorderSizePixel = 0
+			holder.Parent = tabFrame
 
-	local icon = Instance.new("TextLabel")
-	icon.Size = UDim2.new(0, 30, 1, 0)
-	icon.BackgroundTransparency = 1
-	icon.Text = "○"
-	icon.Font = Enum.Font.Gotham
-	icon.TextSize = 18
-	icon.TextColor3 = Color3.fromRGB(200, 200, 200)
-	icon.Parent = holder
+			local icon = Instance.new("TextLabel")
+			icon.Size = UDim2.new(0, 30, 1, 0)
+			icon.BackgroundTransparency = 1
+			icon.Text = "○"
+			icon.Font = Enum.Font.Gotham
+			icon.TextSize = 18
+			icon.TextColor3 = Color3.fromRGB(200, 200, 200)
+			icon.Parent = holder
 
-	local label = Instance.new("TextLabel")
-	label.Position = UDim2.new(0, 35, 0, 0)
-	label.Size = UDim2.new(1, -100, 1, 0)
-	label.BackgroundTransparency = 1
-	label.Text = text
-	label.Font = Enum.Font.Gotham
-	label.TextSize = 14
-	label.TextColor3 = Color3.fromRGB(220, 220, 220)
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.Parent = holder
+			local label = Instance.new("TextLabel")
+			label.Position = UDim2.new(0, 35, 0, 0)
+			label.Size = UDim2.new(1, -100, 1, 0)
+			label.BackgroundTransparency = 1
+			label.Text = text
+			label.Font = Enum.Font.Gotham
+			label.TextSize = 14
+			label.TextColor3 = Color3.fromRGB(220, 220, 220)
+			label.TextXAlignment = Enum.TextXAlignment.Left
+			label.Parent = holder
 
-	local stateLabel = Instance.new("TextButton")
-	stateLabel.Size = UDim2.new(0, 50, 1, 0)
-	stateLabel.Position = UDim2.new(1, -55, 0, 0)
-	stateLabel.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-	stateLabel.Text = "OFF"
-	stateLabel.Font = Enum.Font.GothamBold
-	stateLabel.TextSize = 14
-	stateLabel.TextColor3 = Color3.fromRGB(255, 70, 70)
-	stateLabel.BorderSizePixel = 0
-	stateLabel.Parent = holder
+			local stateLabel = Instance.new("TextButton")
+			stateLabel.Size = UDim2.new(0, 50, 1, 0)
+			stateLabel.Position = UDim2.new(1, -55, 0, 0)
+			stateLabel.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+			stateLabel.Text = "OFF"
+			stateLabel.Font = Enum.Font.GothamBold
+			stateLabel.TextSize = 14
+			stateLabel.TextColor3 = Color3.fromRGB(255, 70, 70)
+			stateLabel.BorderSizePixel = 0
+			stateLabel.Parent = holder
 
-	local state = default or false
+			local state = default or false
 
-	local function updateVisual()
-		icon.Text = state and "●" or "○"
-		stateLabel.Text = state and "ON" or "OFF"
-		stateLabel.TextColor3 = state and Color3.fromRGB(70, 255, 120) or Color3.fromRGB(255, 70, 70)
-	end
+			local function updateVisual()
+				icon.Text = state and "●" or "○"
+				stateLabel.Text = state and "ON" or "OFF"
+				stateLabel.TextColor3 = state and Color3.fromRGB(70, 255, 120) or Color3.fromRGB(255, 70, 70)
+			end
 
-	stateLabel.MouseButton1Click:Connect(function()
-		state = not state
-		updateVisual()
-		if callback then callback(state) end
-	end)
+			stateLabel.MouseButton1Click:Connect(function()
+				state = not state
+				updateVisual()
+				if callback then callback(state) end
+			end)
 
-	updateVisual()
-	tabFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
-end
+			-- Hover effect
+			stateLabel.MouseEnter:Connect(function()
+				TweenService:Create(stateLabel, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 60)}):Play()
+			end)
 
+			stateLabel.MouseLeave:Connect(function()
+				TweenService:Create(stateLabel, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(45, 45, 45)}):Play()
+			end)
+
+			-- Initial visual update
+			updateVisual()
+			tabFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+		end
 
 		return elements
 	end
