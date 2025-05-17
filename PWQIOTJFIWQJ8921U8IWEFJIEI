@@ -1,138 +1,76 @@
 repeat task.wait() until game:IsLoaded()
 
--- LOAD STRAT FILE FIRST
--- <== Change this to your strat filename
-local stratContent = readfile(stratFile)
-
--- SERVICES
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
-local state = ReplicatedStorage:WaitForChild("State")
 local rF = ReplicatedStorage:WaitForChild("RemoteFunction")
-local player = Players.LocalPlayer
-local timer = state:WaitForChild("Timer")
-local Towers = workspace:WaitForChild("Towers")
-local waveUI = player.PlayerGui:WaitForChild("ReactGameTopGameDisplay").Frame.wave.container:WaitForChild("value")
+local State = ReplicatedStorage:WaitForChild("State")
+local Timer = State:WaitForChild("Timer")
+local Player = game.Players.LocalPlayer
+local Gui = Player:WaitForChild("PlayerGui")
+local WaveText = Gui:WaitForChild("ReactGameTopGameDisplay").Frame.wave.container:WaitForChild("value")
 
--- INTERNALS
-local towerRefs = {}
-
-local function getWave()
-    return tonumber(waveUI.Text:match("%d+")) or 0
+local function getWaveTime()
+    local wave = tonumber(WaveText.Text:match("%d+")) or 0
+    local time = Timer.Time.Value
+    return wave, math.floor(time / 60), time % 60
 end
 
-local function getTime()
-    return timer.Time.Value
-end
-
-local function waitForWave(w, m, s)
-    local target = (m * 60) + s
-    repeat task.wait(0.1) until getWave() >= w and getTime() >= target
-end
-
-local function getTowerById(id)
-    return towerRefs[id]
-end
-
-local function parseArgs(args)
-    local parsed = {}
-    for arg in args:gmatch("[^,]+") do
-        arg = arg:gsub("^%s+", ""):gsub("%s+$", "")
-        if arg:match('^".*"$') or arg:match("^'.*'$") then
-            table.insert(parsed, arg:sub(2, -2))
-        elseif tonumber(arg) then
-            table.insert(parsed, tonumber(arg))
-        elseif arg == "true" then
-            table.insert(parsed, true)
-        elseif arg == "false" then
-            table.insert(parsed, false)
-        else
-            table.insert(parsed, arg)
+local function waitForWaveTime(targetWave, targetMin, targetSec)
+    repeat
+        task.wait(0.05)
+        local w, m, s = getWaveTime()
+        if w > targetWave or (w == targetWave and (m > targetMin or (m == targetMin and s >= targetSec))) then
+            break
         end
-    end
-    return parsed
+    until false
 end
 
-local TDS = {}
+_G.TDS = {
+    WaitWave = function(wave, min, sec)
+        waitForWaveTime(wave, min, sec)
+    end,
 
-function TDS:WaitWave(w, m, s)
-    waitForWave(w, m, s)
-end
+    Place = function(tower, x, y, z, wave, min, sec)
+        waitForWaveTime(wave, min, sec)
+        rF:InvokeServer("Troops", "Place", {
+            CFrame.new(tonumber(x), tonumber(y), tonumber(z)),
+            CFrame.Angles(0, 0, 0)
+        }, tower)
+    end,
 
-function TDS:Place(towerName, x, y, z, _, wave, min, sec, _, facing)
-    waitForWave(wave, min, sec)
-    local cframe = CFrame.new(x, y, z) * CFrame.Angles(0, math.rad(facing or 0), 0)
-    local tower = rF:InvokeServer("Troops", "Place", cframe, towerName)
-    if tower then
-        table.insert(towerRefs, tower)
-    end
-end
+    Upgrade = function(id, wave, min, sec)
+        waitForWaveTime(wave, min, sec)
+        local tower = workspace.Towers:GetChildren()[tonumber(id)]
+        if tower then
+            rF:InvokeServer("Troops", "Upgrade", { Troop = tower })
+        end
+    end,
 
-function TDS:Upgrade(id, wave, min, sec)
-    waitForWave(wave, min, sec)
-    local tower = getTowerById(id)
-    if tower then
-        rF:InvokeServer("Troops", "Upgrade", { Troop = tower })
-    end
-end
-
-function TDS:Sell(id, wave, min, sec)
-    waitForWave(wave, min, sec)
-    local tower = getTowerById(id)
-    if tower then
-        rF:InvokeServer("Troops", "Sell", { Troop = tower })
-    end
-end
-
-function TDS:Ability(id, abilityName, wave, min, sec)
-    waitForWave(wave, min, sec)
-    local tower = getTowerById(id)
-    if tower then
-        rF:InvokeServer("Troops", "Abilities", { Troop = tower, Name = abilityName })
-    end
-end
-
-function TDS:Target(id, target, wave, min, sec)
-    waitForWave(wave, min, sec)
-    local tower = getTowerById(id)
-    if tower then
-        rF:InvokeServer("Troops", "Target", { Troop = tower, Target = target })
-    end
-end
-
-function TDS:Skip(wave, min, sec)
-    waitForWave(wave, min, sec)
-    rF:InvokeServer("Waves", "Skip")
-end
-
-function TDS:Loadout(...) print("Loadout:", ...) end
-function TDS:Map(mapName, _, mode) print("Map:", mapName, "Mode:", mode) end
-function TDS:AutoChain(...) print("AutoChain registered for IDs:", ...) end
-
-function TDS:SellAllFarms(wave, min, sec)
-    waitForWave(wave, min, sec)
-    for _, tower in ipairs(Towers:GetChildren()) do
-        if tower:FindFirstChild("Owner") and tower.Owner.Value == player.UserId and tower.Replicator:GetAttribute("Type") == "Farm" then
+    Sell = function(id, wave, min, sec)
+        waitForWaveTime(wave, min, sec)
+        local tower = workspace.Towers:GetChildren()[tonumber(id)]
+        if tower then
             rF:InvokeServer("Troops", "Sell", { Troop = tower })
         end
-    end
-end
+    end,
 
--- EXECUTE STRAT LINES
-for line in stratContent:gmatch("[^\r\n]+") do
-    if line:match("^TDS:") then
-        local cmd, args = line:match("TDS:(%w+)%((.+)%)")
-        local parsed = parseArgs(args or "")
-        local fn = TDS[cmd]
-        if fn then
-            task.spawn(function()
-                fn(TDS, unpack(parsed))
-            end)
-        else
-            warn("[WARN] Unknown command:", cmd)
+    Skip = function(wave, min, sec)
+        waitForWaveTime(wave, min, sec)
+        rF:InvokeServer("Waves", "Skip")
+    end,
+
+    Target = function(id, wave, min, sec)
+        waitForWaveTime(wave, min, sec)
+        local tower = workspace.Towers:GetChildren()[tonumber(id)]
+        if tower then
+            rF:InvokeServer("Troops", "Target", { Troop = tower })
+        end
+    end,
+
+    Ability = function(id, ability, wave, min, sec)
+        waitForWaveTime(wave, min, sec)
+        local tower = workspace.Towers:GetChildren()[tonumber(id)]
+        if tower then
+            rF:InvokeServer("Troops", "Abilities", { Troop = tower, Name = ability })
         end
     end
-end
-
-print("[STRAT PLAYER] Execution complete.")
-return TDS
+}
