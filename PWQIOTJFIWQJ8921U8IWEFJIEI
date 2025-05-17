@@ -1,16 +1,13 @@
--- TDS Strategy Player Script
 local TDS = {}
 local Player = {}
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Towers = workspace.Towers
+local Towers = workspace:WaitForChild("Towers")
 
--- Internal state
 Player.Actions = {}
 Player.CurrentIndex = 1
 Player.Playing = false
 
--- TDS API
 function TDS:Place(towerName, x, y, z, isShore, isHidden, wave, time, extra)
     table.insert(Player.Actions, {
         Type = "Place",
@@ -58,26 +55,26 @@ function TDS:WaitWave(wave, min, sec)
     })
 end
 
+-- FIXED: TDS:Load now uses shared environment correctly
 function TDS:Load(stratString)
-    local f = loadstring(stratString)
-    if f then
-        setfenv(f, { TDS = TDS })
-        f()
-    end
+    local env = { TDS = TDS }
+    local f, err = loadstring(stratString)
+    if not f then error("Strat Load Error: " .. err) end
+    setfenv(f, env)
+    f()
 end
 
--- Utility
 local function waitForWave(wave)
-    while game:GetService("ReplicatedStorage").GameStats:GetAttribute("Wave") < wave do
+    while (ReplicatedStorage.GameStats:GetAttribute("Wave") or 0) < wave do
         task.wait(0.2)
     end
 end
 
 local function waitUntil(min, sec)
-    local targetTime = min * 60 + sec
+    local target = min * 60 + sec
     while true do
         local t = ReplicatedStorage.GameStats:GetAttribute("WaveTime")
-        if t and t >= targetTime then break end
+        if t and t >= target then break end
         task.wait(0.1)
     end
 end
@@ -89,13 +86,9 @@ local function waitForTimeEntry(t)
 end
 
 local function getTowerByIndex(index)
-    local towers = Towers:GetChildren()
-    if towers[index] then
-        return towers[index]
-    end
+    return Towers:GetChildren()[index]
 end
 
--- Playback
 function Player:Play()
     self.Playing = true
     while self.CurrentIndex <= #self.Actions and self.Playing do
@@ -128,7 +121,6 @@ function Player:Play()
             waitForWave(action.Wave)
             waitForTimeEntry(action.Time)
             ReplicatedStorage.RemoteFunction:InvokeServer("Waves", "Skip")
-
         end
 
         self.CurrentIndex += 1
@@ -145,6 +137,6 @@ function Player:Reset()
     self.Playing = false
 end
 
--- Return globals
+-- Export
 _G.TDS = TDS
 _G.Player = Player
