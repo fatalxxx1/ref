@@ -1,76 +1,150 @@
-repeat task.wait() until game:IsLoaded()
-
+-- TDS Strategy Player Script
+local TDS = {}
+local Player = {}
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local rF = ReplicatedStorage:WaitForChild("RemoteFunction")
-local State = ReplicatedStorage:WaitForChild("State")
-local Timer = State:WaitForChild("Timer")
-local Player = game.Players.LocalPlayer
-local Gui = Player:WaitForChild("PlayerGui")
-local WaveText = Gui:WaitForChild("ReactGameTopGameDisplay").Frame.wave.container:WaitForChild("value")
+local Towers = workspace.Towers
 
-local function getWaveTime()
-    local wave = tonumber(WaveText.Text:match("%d+")) or 0
-    local time = Timer.Time.Value
-    return wave, math.floor(time / 60), time % 60
+-- Internal state
+Player.Actions = {}
+Player.CurrentIndex = 1
+Player.Playing = false
+
+-- TDS API
+function TDS:Place(towerName, x, y, z, isShore, isHidden, wave, time, extra)
+    table.insert(Player.Actions, {
+        Type = "Place",
+        Tower = towerName,
+        Position = Vector3.new(x, y, z),
+        IsShore = isShore,
+        IsHidden = isHidden,
+        Wave = wave,
+        Time = time,
+        Extra = extra
+    })
 end
 
-local function waitForWaveTime(targetWave, targetMin, targetSec)
-    repeat
-        task.wait(0.05)
-        local w, m, s = getWaveTime()
-        if w > targetWave or (w == targetWave and (m > targetMin or (m == targetMin and s >= targetSec))) then
-            break
-        end
-    until false
+function TDS:Upgrade(index, time, upgradeName)
+    table.insert(Player.Actions, {
+        Type = "Upgrade",
+        Index = index,
+        Time = time,
+        UpgradeName = upgradeName
+    })
 end
 
-_G.TDS = {
-    WaitWave = function(wave, min, sec)
-        waitForWaveTime(wave, min, sec)
-    end,
+function TDS:Sell(index, time)
+    table.insert(Player.Actions, {
+        Type = "Sell",
+        Index = index,
+        Time = time
+    })
+end
 
-    Place = function(tower, x, y, z, wave, min, sec)
-        waitForWaveTime(wave, min, sec)
-        rF:InvokeServer("Troops", "Place", {
-            CFrame.new(tonumber(x), tonumber(y), tonumber(z)),
-            CFrame.Angles(0, 0, 0)
-        }, tower)
-    end,
+function TDS:Skip(wave, time)
+    table.insert(Player.Actions, {
+        Type = "Skip",
+        Wave = wave,
+        Time = time
+    })
+end
 
-    Upgrade = function(id, wave, min, sec)
-        waitForWaveTime(wave, min, sec)
-        local tower = workspace.Towers:GetChildren()[tonumber(id)]
-        if tower then
-            rF:InvokeServer("Troops", "Upgrade", { Troop = tower })
-        end
-    end,
+function TDS:WaitWave(wave, min, sec)
+    table.insert(Player.Actions, {
+        Type = "WaitWave",
+        Wave = wave,
+        Minute = min,
+        Second = sec
+    })
+end
 
-    Sell = function(id, wave, min, sec)
-        waitForWaveTime(wave, min, sec)
-        local tower = workspace.Towers:GetChildren()[tonumber(id)]
-        if tower then
-            rF:InvokeServer("Troops", "Sell", { Troop = tower })
-        end
-    end,
-
-    Skip = function(wave, min, sec)
-        waitForWaveTime(wave, min, sec)
-        rF:InvokeServer("Waves", "Skip")
-    end,
-
-    Target = function(id, wave, min, sec)
-        waitForWaveTime(wave, min, sec)
-        local tower = workspace.Towers:GetChildren()[tonumber(id)]
-        if tower then
-            rF:InvokeServer("Troops", "Target", { Troop = tower })
-        end
-    end,
-
-    Ability = function(id, ability, wave, min, sec)
-        waitForWaveTime(wave, min, sec)
-        local tower = workspace.Towers:GetChildren()[tonumber(id)]
-        if tower then
-            rF:InvokeServer("Troops", "Abilities", { Troop = tower, Name = ability })
-        end
+function TDS:Load(stratString)
+    local f = loadstring(stratString)
+    if f then
+        setfenv(f, { TDS = TDS })
+        f()
     end
-}
+end
+
+-- Utility
+local function waitForWave(wave)
+    while game:GetService("ReplicatedStorage").GameStats:GetAttribute("Wave") < wave do
+        task.wait(0.2)
+    end
+end
+
+local function waitUntil(min, sec)
+    local targetTime = min * 60 + sec
+    while true do
+        local t = ReplicatedStorage.GameStats:GetAttribute("WaveTime")
+        if t and t >= targetTime then break end
+        task.wait(0.1)
+    end
+end
+
+local function waitForTimeEntry(t)
+    if typeof(t) == "table" then
+        waitUntil(t[1], t[2])
+    end
+end
+
+local function getTowerByIndex(index)
+    local towers = Towers:GetChildren()
+    if towers[index] then
+        return towers[index]
+    end
+end
+
+-- Playback
+function Player:Play()
+    self.Playing = true
+    while self.CurrentIndex <= #self.Actions and self.Playing do
+        local action = self.Actions[self.CurrentIndex]
+
+        if action.Type == "WaitWave" then
+            waitForWave(action.Wave)
+            waitUntil(action.Minute, action.Second)
+
+        elseif action.Type == "Place" then
+            waitForWave(action.Wave)
+            waitForTimeEntry(action.Time)
+            ReplicatedStorage.RemoteFunction:InvokeServer("Troops", "Place", action.Tower, action.Position, action.IsShore, action.IsHidden)
+
+        elseif action.Type == "Upgrade" then
+            waitForTimeEntry(action.Time)
+            local tower = getTowerByIndex(action.Index)
+            if tower then
+                ReplicatedStorage.RemoteFunction:InvokeServer("Troops", "Upgrade", tower)
+            end
+
+        elseif action.Type == "Sell" then
+            waitForTimeEntry(action.Time)
+            local tower = getTowerByIndex(action.Index)
+            if tower then
+                ReplicatedStorage.RemoteFunction:InvokeServer("Troops", "Sell", tower)
+            end
+
+        elseif action.Type == "Skip" then
+            waitForWave(action.Wave)
+            waitForTimeEntry(action.Time)
+            ReplicatedStorage.RemoteFunction:InvokeServer("Waves", "Skip")
+
+        end
+
+        self.CurrentIndex += 1
+        task.wait()
+    end
+end
+
+function Player:Stop()
+    self.Playing = false
+end
+
+function Player:Reset()
+    self.CurrentIndex = 1
+    self.Playing = false
+end
+
+-- Return globals
+_G.TDS = TDS
+_G.Player = Player
