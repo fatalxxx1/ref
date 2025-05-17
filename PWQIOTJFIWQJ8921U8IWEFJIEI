@@ -3,7 +3,7 @@ local TDS = {}
 local Player = {}
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Towers = workspace.Towers
+local Towers = workspace:WaitForChild("Towers")
 
 -- Internal state
 Player.Actions = {}
@@ -11,7 +11,7 @@ Player.CurrentIndex = 1
 Player.Playing = false
 
 -- TDS API
-function TDS:Place(towerName, x, y, z, isShore, isHidden, wave, time, extra)
+function TDS:Place(towerName, x, y, z, isShore, isHidden, wave, time)
     table.insert(Player.Actions, {
         Type = "Place",
         Tower = towerName,
@@ -19,17 +19,15 @@ function TDS:Place(towerName, x, y, z, isShore, isHidden, wave, time, extra)
         IsShore = isShore,
         IsHidden = isHidden,
         Wave = wave,
-        Time = time,
-        Extra = extra
+        Time = time
     })
 end
 
-function TDS:Upgrade(index, time, upgradeName)
+function TDS:Upgrade(index, time)
     table.insert(Player.Actions, {
         Type = "Upgrade",
         Index = index,
-        Time = time,
-        UpgradeName = upgradeName
+        Time = time
     })
 end
 
@@ -59,31 +57,31 @@ function TDS:WaitWave(wave, min, sec)
 end
 
 function TDS:Load(stratString)
-    local env = setmetatable({ TDS = TDS }, { __index = _G })
+    local env = setmetatable({ TDS = TDS }, { __index = getfenv() })
     local func, err = loadstring(stratString)
     if not func then
-        warn("TDS:Load error:", err)
+        warn("TDS:Load parse error:", err)
         return
     end
     setfenv(func, env)
     local success, runtimeErr = pcall(func)
     if not success then
-        warn("TDS:Load execution error:", runtimeErr)
+        warn("TDS:Load runtime error:", runtimeErr)
     end
 end
 
--- Utility
+-- Utilities
 local function waitForWave(wave)
-    while (ReplicatedStorage:FindFirstChild("GameStats") and ReplicatedStorage.GameStats:GetAttribute("Wave") or 0) < wave do
+    while (ReplicatedStorage:WaitForChild("GameStats"):GetAttribute("Wave") or 0) < wave do
         task.wait(0.2)
     end
 end
 
 local function waitUntil(min, sec)
-    local target = (min * 60) + sec
+    local targetTime = min * 60 + sec
     while true do
         local t = ReplicatedStorage.GameStats:GetAttribute("WaveTime")
-        if t and t >= target then break end
+        if t and t >= targetTime then break end
         task.wait(0.1)
     end
 end
@@ -147,6 +145,6 @@ function Player:Reset()
     self.Playing = false
 end
 
--- Expose to global
+-- Expose API
 _G.TDS = TDS
 _G.Player = Player
