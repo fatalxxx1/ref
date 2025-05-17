@@ -1,0 +1,49 @@
+-- TDS Strategy Player (Custom, No External Patches)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RemoteFunction = ReplicatedStorage.RemoteFunction
+
+local TDS = {}
+
+function TDS:Loadout(...)
+    -- Optional: validate loadout
+    print("Loadout selected:", ...)
+end
+
+function TDS:Map(mapName, isFallen, mode)
+    print("Loading map:", mapName, "Mode:", mode)
+end
+
+function TDS:Place(tower, x, y, z, wave, subwave, delay, isAutoChain, a, b, c, d)
+    task.delay(delay, function()
+        RemoteFunction:InvokeServer("Pl\208\176ce", tower, CFrame.new(x, y, z))
+        print("Placed:", tower, "at", x, y, z, "wave:", wave)
+    end)
+end
+
+function TDS:Upgrade(towerID, wave, subwave, delay, skipAnim)
+    task.delay(delay, function()
+        RemoteFunction:InvokeServer("Upgrade", towerID)
+        print("Upgraded:", towerID, "wave:", wave)
+    end)
+end
+
+function TDS:Ability(towerID, abilityName, wave, subwave, delay, chain)
+    task.delay(delay, function()
+        RemoteFunction:InvokeServer("UseAbility", towerID, abilityName)
+        print("Ability:", abilityName, "used by tower:", towerID)
+    end)
+end
+
+function TDS:SellAllFarms(wave, subwave, delay, chain)
+    task.delay(delay, function()
+        for _, v in pairs(workspace.Towers:GetChildren()) do
+            if v.Name == "Farm" then
+                RemoteFunction:InvokeServer("Sell", v)
+                print("Sold farm:", v)
+            end
+        end
+    end)
+end
+
+-- Return interface
+return TDS
