@@ -1,79 +1,90 @@
-TDS:WaitWave(0, 0, 5)
-TDS:VoteSkip(0, 0, 5.0)
-TDS:WaitWave(0, 0, 2)
-TDS:Place("Trapper", 7.66, 1.04, -24.04, 0, 0, 2.0, true, 0.0, 0.0, 0.0, "false")
-TDS:WaitWave(1, 0, 2)
-TDS:Upgrade(1, 1, 0, 2.0, "false")
-TDS:WaitWave(3, 0, 40)
-TDS:Place("Trapper", 8.41, 1.04, -20.92, 3, 0, 40.0, true, 0.0, 0.0, 0.0, "false")
-TDS:WaitWave(4, 0, 4)
-TDS:Upgrade(2, 4, 0, 4.0, "false")
-TDS:WaitWave(5, 0, 2)
-TDS:Upgrade(1, 5, 0, 2.0, "false")
-TDS:WaitWave(5, 0, 1)
-TDS:Option(1, "Trap", "Landmine", 5, 0, 1.0)
-TDS:WaitWave(6, 0, 40)
-TDS:Target(1, "Last", 6, 0, 40.0)
-TDS:WaitWave(6, 0, 39)
-TDS:Target(1, "Strongest", 6, 0, 39.0)
-TDS:WaitWave(7, 0, 35)
-TDS:Upgrade(2, 7, 0, 35.0, "false")
-TDS:WaitWave(7, 0, 34)
-TDS:Option(2, "Trap", "Landmine", 7, 0, 34.0)
-TDS:WaitWave(7, 0, 2)
-TDS:Place("Trapper", 4.87, 1.04, -31.01, 7, 0, 2.0, true, 0.0, 0.0, 0.0, "false")
-TDS:WaitWave(7, 0, 1)
-TDS:Upgrade(3, 7, 0, 1.0, "false")
-TDS:WaitWave(9, 0, 40)
-TDS:Upgrade(3, 9, 0, 40.0, "false")
-TDS:WaitWave(9, 0, 39)
-TDS:Option(3, "Trap", "Landmine", 9, 0, 39.0)
-TDS:WaitWave(9, 0, 37)
-TDS:Target(3, "Last", 9, 0, 37.0)
-TDS:Target(3, "Strongest", 9, 0, 37.0)
-TDS:WaitWave(10, 0, 45)
-TDS:Place("DJ Booth", 0.83, 1.04, -22.86, 10, 0, 45.0, true, 0.0, 0.0, 0.0, "false")
-TDS:WaitWave(10, 0, 44)
-TDS:Upgrade(4, 10, 0, 44.0, "false")
-TDS:WaitWave(10, 0, 43)
-TDS:Option(4, "Track", "Green", 10, 0, 43.0)
-TDS:WaitWave(11, 0, 50)
-TDS:Upgrade(4, 11, 0, 50.0, "false")
-TDS:WaitWave(11, 0, 2)
-TDS:Place("Minigunner", 8.45, 1.04, -17.01, 11, 0, 2.0, true, 0.0, 0.0, 0.0, "false")
-TDS:WaitWave(12, 0, 50)
-TDS:Upgrade(5, 12, 0, 50.0, "false")
-TDS:WaitWave(12, 0, 42)
-TDS:Upgrade(5, 12, 0, 42.0, "false")
-TDS:WaitWave(13, 0, 43)
-TDS:Place("Minigunner", 5.14, 1.04, -16.18, 13, 0, 43.0, true, 0.0, 0.0, 0.0, "false")
-TDS:WaitWave(13, 0, 28)
-TDS:Upgrade(6, 13, 0, 28.0, "false")
-TDS:WaitWave(13, 0, 5)
-TDS:VoteSkip(13, 0, 5.0)
-TDS:WaitWave(14, 0, 34)
-TDS:Upgrade(6, 14, 0, 34.0, "false")
-TDS:WaitWave(14, 0, 30)
-TDS:Place("Commander", 1.97, 1.04, -18.08, 14, 0, 30.0, true, 0.0, 0.0, 0.0, "false")
-TDS:WaitWave(14, 0, 29)
-TDS:Upgrade(7, 14, 0, 29.0, "false")
-TDS:WaitWave(15, 0, 54)
-TDS:Upgrade(7, 15, 0, 54.0, "false")
-TDS:WaitWave(15, 0, 52)
-TDS:Ability(7, 15, 0, 52.0)
-TDS:WaitWave(15, 0, 42)
-TDS:Place("Trapper", 11.16, 1.04, -18.72, 15, 0, 42.0, true, 0.0, 0.0, 0.0, "false")
-TDS:WaitWave(15, 0, 41)
-TDS:Upgrade(8, 15, 0, 41.0, "false")
-TDS:WaitWave(15, 0, 32)
-TDS:Upgrade(8, 15, 0, 32.0, "false")
-TDS:WaitWave(15, 0, 31)
-TDS:Option(8, "Trap", "Landmine", 15, 0, 31.0)
-TDS:WaitWave(15, 0, 26)
-TDS:Target(8, "Last", 15, 0, 26.0)
-TDS:Target(8, "Strongest", 15, 0, 26.0)
-TDS:WaitWave(15, 0, 22)
-TDS:Ability(7, 15, 0, 22.0)
-TDS:Ability(7, 15, 0, 22.0)
-TDS:WaitWave(15, 0, 9)
-TDS:Place("Trapper", 8.09, 1.04, -30.56, 15, 0, 9.0, true, 0.0, 0.0, 0.0, "false")
+repeat task.wait() until game:IsLoaded()
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local rF = ReplicatedStorage:WaitForChild("RemoteFunction")
+local State = ReplicatedStorage:WaitForChild("State")
+local Timer = State:WaitForChild("Timer")
+local WaveGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+    :WaitForChild("ReactGameTopGameDisplay")
+    :WaitForChild("Frame").wave.container:WaitForChild("value")
+
+local function getCurrentTime()
+    local wave = tonumber(WaveGui.Text:match("%d+")) or 0
+    local t = Timer.Time.Value
+    return wave, math.floor(t / 60), math.floor(t % 60)
+end
+
+local function waitForWaveTime(wave, min, sec)
+    while true do
+        local curWave, curMin, curSec = getCurrentTime()
+        if curWave > wave or (curWave == wave and (curMin > min or (curMin == min and curSec >= sec))) then
+            break
+        end
+        task.wait()
+    end
+end
+
+local TDS = {}
+
+function TDS:Place(name, x, y, z, wave, min, sec, useRot, rotX, rotY, rotZ, usePath)
+    waitForWaveTime(wave, min, sec)
+    local cf = CFrame.new(x, y, z)
+    if useRot then
+        cf = cf * CFrame.Angles(math.rad(rotX), math.rad(rotY), math.rad(rotZ))
+    end
+    rF:InvokeServer("Troops", "Place", {
+        Position = cf.Position,
+        Rotation = cf.Rotation,
+        Path = usePath and "Path1" or nil
+    }, name)
+end
+
+function TDS:Upgrade(id, wave, min, sec)
+    waitForWaveTime(wave, min, sec)
+    local tower = workspace.Towers:GetChildren()[id]
+    if tower then rF:InvokeServer("Troops", "Upgrade", tower) end
+end
+
+function TDS:Target(id, mode, wave, min, sec)
+    waitForWaveTime(wave, min, sec)
+    local tower = workspace.Towers:GetChildren()[id]
+    if tower then rF:InvokeServer("Troops", "Set", {Troop = tower, Target = mode}) end
+end
+
+function TDS:Ability(id, wave, min, sec)
+    waitForWaveTime(wave, min, sec)
+    local tower = workspace.Towers:GetChildren()[id]
+    if tower then rF:InvokeServer("Troops", "Activate", {Troop = tower}) end
+end
+
+function TDS:Option(id, name, value, wave, min, sec)
+    waitForWaveTime(wave, min, sec)
+    local tower = workspace.Towers:GetChildren()[id]
+    if tower then
+        rF:InvokeServer("Troops", "Option", "Set", {
+            Troop = tower,
+            Name = name,
+            Value = value
+        })
+    end
+end
+
+function TDS:Sell(id, wave, min, sec)
+    waitForWaveTime(wave, min, sec)
+    local tower = workspace.Towers:GetChildren()[id]
+    if tower then
+        rF:InvokeServer("Troops", "Sell", {Troop = tower})
+    end
+end
+
+function TDS:VoteSkip(wave, min, sec)
+    waitForWaveTime(wave, min, sec)
+    rF:InvokeServer("Voting", "Skip")
+end
+
+function TDS:WaitWave(wave, min, sec)
+    waitForWaveTime(wave, min, sec)
+end
+
+return TDS
