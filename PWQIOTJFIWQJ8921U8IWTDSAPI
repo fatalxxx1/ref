@@ -1,191 +1,79 @@
-repeat task.wait() until game:IsLoaded()
-
--- Services
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local rF = ReplicatedStorage:WaitForChild("RemoteFunction")
-local state = ReplicatedStorage:WaitForChild("State")
-local timer = state:WaitForChild("Timer")
-local player = Players.LocalPlayer
-local PGui = player:WaitForChild("PlayerGui")
-local WaveL = PGui:WaitForChild("ReactGameTopGameDisplay"):WaitForChild("Frame")
-    :WaitForChild("wave").container:WaitForChild("value")
-
--- Variables
-local towers = {}
-
--- Helper to safely call remote
-local function invokeServerSafe(...)
-    local success, result = pcall(function()
-        return rF:InvokeServer(...)
-    end)
-    if not success then
-        warn("Remote invoke failed:", result)
-        return nil
-    end
-    return result
-end
-
-local TDS = {}
-
--- WaitWave
-function TDS.WaitWave(wave, min, sec)
-    -- Just wait until the game wave/time matches or passes the requested time
-    while true do
-        local waveText = WaveL.Text
-        local currentWave = tonumber(string.match(waveText, "%d+")) or 0
-        local currentTime = timer.Time.Value
-
-        if currentWave > wave then break end
-        if currentWave == wave and currentTime >= (min * 60 + sec) then break end
-        task.wait(0.1)
-    end
-    print(string.format("Waited to wave %d, time %d:%02d", wave, min, sec))
-end
-
--- Place Tower
-function TDS.Place(name, x, y, z, wave, min, sec, bool, rx, ry, rz, strBool)
-    local pos = Vector3.new(x, y, z)
-    local rot = Vector3.new(rx or 0, ry or 0, rz or 0)
-
-    local args = {
-        "Troops",
-        "Place",
-        {
-            Position = pos,
-            Rotation = rot
-        },
-        name
-    }
-
-    local tower = invokeServerSafe(unpack(args))
-    if tower and typeof(tower) == "Instance" and tower:IsA("Model") then
-        table.insert(towers, tower)
-        print("Placed tower:", name)
-        return tower
-    else
-        warn("Failed to place tower:", name)
-        return nil
-    end
-end
-
--- Upgrade Tower
-function TDS.Upgrade(id, wave, min, sec, strBool)
-    local tower = towers[id]
-    if not tower then
-        warn("Upgrade failed: invalid tower ID", id)
-        return
-    end
-
-    local args = {
-        "Troops",
-        "Upgrade",
-        "Set",
-        {
-            Troop = tower,
-            Path = 1
-        }
-    }
-
-    invokeServerSafe(unpack(args))
-    print("Upgraded tower ID:", id)
-end
-
--- Sell Tower
-function TDS.Sell(id, wave, min, sec)
-    local tower = towers[id]
-    if not tower then
-        warn("Sell failed: invalid tower ID", id)
-        return
-    end
-
-    local args = {
-        "Troops",
-        "Sell",
-        {
-            Troop = tower
-        }
-    }
-
-    invokeServerSafe(unpack(args))
-    print("Sold tower ID:", id)
-end
-
--- Ability
-function TDS.Ability(id, wave, min, sec)
-    local tower = towers[id]
-    if not tower then
-        warn("Ability failed: invalid tower ID", id)
-        return
-    end
-
-    local args = {
-        "Troops",
-        "Abilities",
-        "Activate",
-        {
-            Troop = tower,
-            Name = "Call Of Arms",  -- Or adapt if your ability names differ
-            Data = {}
-        }
-    }
-
-    invokeServerSafe(unpack(args))
-    print("Activated ability for tower ID:", id)
-end
-
--- Vote Skip
-function TDS.VoteSkip(wave, min, sec)
-    local args = {
-        "Voting",
-        "Skip"
-    }
-    invokeServerSafe(unpack(args))
-    print("Voted to skip wave at time", wave, min, sec)
-end
-
--- Target (optional, expand as needed)
-function TDS.Target(id, mode, wave, min, sec)
-    local tower = towers[id]
-    if not tower then
-        warn("Target failed: invalid tower ID", id)
-        return
-    end
-
-    local args = {
-        "Troops",
-        "Target",
-        "Set",
-        {
-            Troop = tower,
-            Target = mode
-        }
-    }
-    invokeServerSafe(unpack(args))
-    print(string.format("Set target mode '%s' for tower ID %d", mode, id))
-end
-
--- Option Set (e.g., trap options)
-function TDS.Option(id, name, value, wave, min, sec)
-    local tower = towers[id]
-    if not tower then
-        warn("Option failed: invalid tower ID", id)
-        return
-    end
-
-    local args = {
-        "Troops",
-        "Option",
-        "Set",
-        {
-            Troop = tower,
-            Name = name,
-            Value = value
-        }
-    }
-    invokeServerSafe(unpack(args))
-    print(string.format("Set option '%s' to '%s' for tower ID %d", name, value, id))
-end
-
-print("TDS Playback API loaded successfully.")
-return TDS
+TDS:WaitWave(0, 0, 5)
+TDS:VoteSkip(0, 0, 5.0)
+TDS:WaitWave(0, 0, 2)
+TDS:Place("Trapper", 7.66, 1.04, -24.04, 0, 0, 2.0, true, 0.0, 0.0, 0.0, "false")
+TDS:WaitWave(1, 0, 2)
+TDS:Upgrade(1, 1, 0, 2.0, "false")
+TDS:WaitWave(3, 0, 40)
+TDS:Place("Trapper", 8.41, 1.04, -20.92, 3, 0, 40.0, true, 0.0, 0.0, 0.0, "false")
+TDS:WaitWave(4, 0, 4)
+TDS:Upgrade(2, 4, 0, 4.0, "false")
+TDS:WaitWave(5, 0, 2)
+TDS:Upgrade(1, 5, 0, 2.0, "false")
+TDS:WaitWave(5, 0, 1)
+TDS:Option(1, "Trap", "Landmine", 5, 0, 1.0)
+TDS:WaitWave(6, 0, 40)
+TDS:Target(1, "Last", 6, 0, 40.0)
+TDS:WaitWave(6, 0, 39)
+TDS:Target(1, "Strongest", 6, 0, 39.0)
+TDS:WaitWave(7, 0, 35)
+TDS:Upgrade(2, 7, 0, 35.0, "false")
+TDS:WaitWave(7, 0, 34)
+TDS:Option(2, "Trap", "Landmine", 7, 0, 34.0)
+TDS:WaitWave(7, 0, 2)
+TDS:Place("Trapper", 4.87, 1.04, -31.01, 7, 0, 2.0, true, 0.0, 0.0, 0.0, "false")
+TDS:WaitWave(7, 0, 1)
+TDS:Upgrade(3, 7, 0, 1.0, "false")
+TDS:WaitWave(9, 0, 40)
+TDS:Upgrade(3, 9, 0, 40.0, "false")
+TDS:WaitWave(9, 0, 39)
+TDS:Option(3, "Trap", "Landmine", 9, 0, 39.0)
+TDS:WaitWave(9, 0, 37)
+TDS:Target(3, "Last", 9, 0, 37.0)
+TDS:Target(3, "Strongest", 9, 0, 37.0)
+TDS:WaitWave(10, 0, 45)
+TDS:Place("DJ Booth", 0.83, 1.04, -22.86, 10, 0, 45.0, true, 0.0, 0.0, 0.0, "false")
+TDS:WaitWave(10, 0, 44)
+TDS:Upgrade(4, 10, 0, 44.0, "false")
+TDS:WaitWave(10, 0, 43)
+TDS:Option(4, "Track", "Green", 10, 0, 43.0)
+TDS:WaitWave(11, 0, 50)
+TDS:Upgrade(4, 11, 0, 50.0, "false")
+TDS:WaitWave(11, 0, 2)
+TDS:Place("Minigunner", 8.45, 1.04, -17.01, 11, 0, 2.0, true, 0.0, 0.0, 0.0, "false")
+TDS:WaitWave(12, 0, 50)
+TDS:Upgrade(5, 12, 0, 50.0, "false")
+TDS:WaitWave(12, 0, 42)
+TDS:Upgrade(5, 12, 0, 42.0, "false")
+TDS:WaitWave(13, 0, 43)
+TDS:Place("Minigunner", 5.14, 1.04, -16.18, 13, 0, 43.0, true, 0.0, 0.0, 0.0, "false")
+TDS:WaitWave(13, 0, 28)
+TDS:Upgrade(6, 13, 0, 28.0, "false")
+TDS:WaitWave(13, 0, 5)
+TDS:VoteSkip(13, 0, 5.0)
+TDS:WaitWave(14, 0, 34)
+TDS:Upgrade(6, 14, 0, 34.0, "false")
+TDS:WaitWave(14, 0, 30)
+TDS:Place("Commander", 1.97, 1.04, -18.08, 14, 0, 30.0, true, 0.0, 0.0, 0.0, "false")
+TDS:WaitWave(14, 0, 29)
+TDS:Upgrade(7, 14, 0, 29.0, "false")
+TDS:WaitWave(15, 0, 54)
+TDS:Upgrade(7, 15, 0, 54.0, "false")
+TDS:WaitWave(15, 0, 52)
+TDS:Ability(7, 15, 0, 52.0)
+TDS:WaitWave(15, 0, 42)
+TDS:Place("Trapper", 11.16, 1.04, -18.72, 15, 0, 42.0, true, 0.0, 0.0, 0.0, "false")
+TDS:WaitWave(15, 0, 41)
+TDS:Upgrade(8, 15, 0, 41.0, "false")
+TDS:WaitWave(15, 0, 32)
+TDS:Upgrade(8, 15, 0, 32.0, "false")
+TDS:WaitWave(15, 0, 31)
+TDS:Option(8, "Trap", "Landmine", 15, 0, 31.0)
+TDS:WaitWave(15, 0, 26)
+TDS:Target(8, "Last", 15, 0, 26.0)
+TDS:Target(8, "Strongest", 15, 0, 26.0)
+TDS:WaitWave(15, 0, 22)
+TDS:Ability(7, 15, 0, 22.0)
+TDS:Ability(7, 15, 0, 22.0)
+TDS:WaitWave(15, 0, 9)
+TDS:Place("Trapper", 8.09, 1.04, -30.56, 15, 0, 9.0, true, 0.0, 0.0, 0.0, "false")
