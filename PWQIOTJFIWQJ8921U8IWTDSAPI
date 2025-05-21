@@ -11,128 +11,168 @@ local PGui = player:WaitForChild("PlayerGui")
 local WaveL = PGui:WaitForChild("ReactGameTopGameDisplay"):WaitForChild("Frame")
     :WaitForChild("wave").container:WaitForChild("value")
 
-local towers = workspace:WaitForChild("Towers")
+-- Variables
+local towers = {}
 
-local function getCurrentWave()
-    local success, waveText = pcall(function() return WaveL.Text end)
-    if success then
-        return tonumber(string.match(waveText, "%d+")) or 0
+-- Helper to safely call remote
+local function invokeServerSafe(...)
+    local success, result = pcall(function()
+        return rF:InvokeServer(...)
+    end)
+    if not success then
+        warn("Remote invoke failed:", result)
+        return nil
     end
-    return 0
-end
-
-local function getCurrentTime()
-    local success, timeVal = pcall(function() return timer.Time.Value end)
-    if success then
-        return timeVal
-    end
-    return 0
-end
-
-local function waitForWave(waveTarget, minTarget, secTarget)
-    local targetSeconds = minTarget * 60 + secTarget
-    while true do
-        local waveNow = getCurrentWave()
-        local timeNow = getCurrentTime()
-        if waveNow > waveTarget or (waveNow == waveTarget and timeNow >= targetSeconds) then
-            break
-        end
-        task.wait(0.1)
-    end
-end
-
-local function getTowerByID(id)
-    local towerList = towers:GetChildren()
-    return towerList[id]
+    return result
 end
 
 local TDS = {}
 
+-- WaitWave
 function TDS.WaitWave(wave, min, sec)
-    print(string.format("Waiting for wave %d at %02d:%02d...", wave, min, sec))
-    waitForWave(wave, min, sec)
+    -- Just wait until the game wave/time matches or passes the requested time
+    while true do
+        local waveText = WaveL.Text
+        local currentWave = tonumber(string.match(waveText, "%d+")) or 0
+        local currentTime = timer.Time.Value
+
+        if currentWave > wave then break end
+        if currentWave == wave and currentTime >= (min * 60 + sec) then break end
+        task.wait(0.1)
+    end
+    print(string.format("Waited to wave %d, time %d:%02d", wave, min, sec))
 end
 
-function TDS.VoteSkip(min, sec)
-    print("Voting to skip wave")
-    rF:InvokeServer("Voting", "Skip")
-end
-
+-- Place Tower
 function TDS.Place(name, x, y, z, wave, min, sec, bool, rx, ry, rz, strBool)
-    print(string.format("Placing tower %s at (%.2f, %.2f, %.2f)", name, x, y, z))
+    local pos = Vector3.new(x, y, z)
+    local rot = Vector3.new(rx or 0, ry or 0, rz or 0)
+
     local args = {
         "Troops",
         "Place",
         {
-            Position = Vector3.new(x, y, z),
-            Rotation = Vector3.new(rx or 0, ry or 0, rz or 0),
+            Position = pos,
+            Rotation = rot
         },
         name
     }
-    rF:InvokeServer(unpack(args))
+
+    local tower = invokeServerSafe(unpack(args))
+    if tower and typeof(tower) == "Instance" and tower:IsA("Model") then
+        table.insert(towers, tower)
+        print("Placed tower:", name)
+        return tower
+    else
+        warn("Failed to place tower:", name)
+        return nil
+    end
 end
 
-function TDS.Upgrade(towerID, wave, min, sec, strBool)
-    print("Upgrading tower ID", towerID)
-    local tower = getTowerByID(towerID)
+-- Upgrade Tower
+function TDS.Upgrade(id, wave, min, sec, strBool)
+    local tower = towers[id]
     if not tower then
-        warn("Tower ID not found:", towerID)
+        warn("Upgrade failed: invalid tower ID", id)
         return
     end
+
     local args = {
         "Troops",
         "Upgrade",
         "Set",
         {
             Troop = tower,
-            Path = 1,
+            Path = 1
         }
     }
-    rF:InvokeServer(unpack(args))
+
+    invokeServerSafe(unpack(args))
+    print("Upgraded tower ID:", id)
 end
 
-function TDS.Target(towerID, mode, wave, min, sec)
-    print(string.format("Setting target mode '%s' for tower %d", mode, towerID))
-    local tower = getTowerByID(towerID)
+-- Sell Tower
+function TDS.Sell(id, wave, min, sec)
+    local tower = towers[id]
     if not tower then
-        warn("Tower ID not found:", towerID)
+        warn("Sell failed: invalid tower ID", id)
         return
     end
+
     local args = {
         "Troops",
+        "Sell",
+        {
+            Troop = tower
+        }
+    }
+
+    invokeServerSafe(unpack(args))
+    print("Sold tower ID:", id)
+end
+
+-- Ability
+function TDS.Ability(id, wave, min, sec)
+    local tower = towers[id]
+    if not tower then
+        warn("Ability failed: invalid tower ID", id)
+        return
+    end
+
+    local args = {
+        "Troops",
+        "Abilities",
+        "Activate",
+        {
+            Troop = tower,
+            Name = "Call Of Arms",  -- Or adapt if your ability names differ
+            Data = {}
+        }
+    }
+
+    invokeServerSafe(unpack(args))
+    print("Activated ability for tower ID:", id)
+end
+
+-- Vote Skip
+function TDS.VoteSkip(wave, min, sec)
+    local args = {
+        "Voting",
+        "Skip"
+    }
+    invokeServerSafe(unpack(args))
+    print("Voted to skip wave at time", wave, min, sec)
+end
+
+-- Target (optional, expand as needed)
+function TDS.Target(id, mode, wave, min, sec)
+    local tower = towers[id]
+    if not tower then
+        warn("Target failed: invalid tower ID", id)
+        return
+    end
+
+    local args = {
+        "Troops",
+        "Target",
         "Set",
         {
             Troop = tower,
             Target = mode
         }
     }
-    rF:InvokeServer(unpack(args))
+    invokeServerSafe(unpack(args))
+    print(string.format("Set target mode '%s' for tower ID %d", mode, id))
 end
 
-function TDS.Ability(towerID, wave, min, sec)
-    print("Activating ability on tower ID", towerID)
-    local tower = getTowerByID(towerID)
+-- Option Set (e.g., trap options)
+function TDS.Option(id, name, value, wave, min, sec)
+    local tower = towers[id]
     if not tower then
-        warn("Tower ID not found:", towerID)
+        warn("Option failed: invalid tower ID", id)
         return
     end
-    local args = {
-        "Troops",
-        "Activate",
-        {
-            Troop = tower
-        }
-    }
-    rF:InvokeServer(unpack(args))
-end
 
-function TDS.Option(towerID, name, value, wave, min, sec)
-    print(string.format("Setting option '%s'='%s' for tower %d", name, value, towerID))
-    local tower = getTowerByID(towerID)
-    if not tower then
-        warn("Tower ID not found:", towerID)
-        return
-    end
     local args = {
         "Troops",
         "Option",
@@ -143,24 +183,9 @@ function TDS.Option(towerID, name, value, wave, min, sec)
             Value = value
         }
     }
-    rF:InvokeServer(unpack(args))
+    invokeServerSafe(unpack(args))
+    print(string.format("Set option '%s' to '%s' for tower ID %d", name, value, id))
 end
 
-function TDS.Sell(towerID, wave, min, sec)
-    print("Selling tower ID", towerID)
-    local tower = getTowerByID(towerID)
-    if not tower then
-        warn("Tower ID not found:", towerID)
-        return
-    end
-    local args = {
-        "Troops",
-        "Sell",
-        {
-            Troop = tower
-        }
-    }
-    rF:InvokeServer(unpack(args))
-end
-
+print("TDS Playback API loaded successfully.")
 return TDS
