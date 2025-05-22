@@ -28,6 +28,7 @@ end
 local TDS = {}
 
 function TDS:Place(name, x, y, z, wave, min, sec, useRot, rotX, rotY, rotZ, usePath)
+    print(("[DEBUG] Place %s at (%.2f, %.2f, %.2f) on Wave %d, Time %02d:%02d"):format(name, x, y, z, wave, min, sec))
     waitForWaveTime(wave, min, sec)
     local cf = CFrame.new(x, y, z)
     if useRot then
@@ -41,24 +42,40 @@ function TDS:Place(name, x, y, z, wave, min, sec, useRot, rotX, rotY, rotZ, useP
 end
 
 function TDS:Upgrade(id, wave, min, sec)
+    print(("[DEBUG] Upgrade Tower #%d at Wave %d, Time %02d:%02d"):format(id, wave, min, sec))
     waitForWaveTime(wave, min, sec)
     local tower = workspace.Towers:GetChildren()[id]
-    if tower then rF:InvokeServer("Troops", "Upgrade", tower) end
+    if tower then
+        rF:InvokeServer("Troops", "Upgrade", tower)
+    else
+        warn("[ERROR] Upgrade failed, tower ID not found:", id)
+    end
 end
 
 function TDS:Target(id, mode, wave, min, sec)
+    print(("[DEBUG] Target Tower #%d to %s at Wave %d, Time %02d:%02d"):format(id, mode, wave, min, sec))
     waitForWaveTime(wave, min, sec)
     local tower = workspace.Towers:GetChildren()[id]
-    if tower then rF:InvokeServer("Troops", "Set", {Troop = tower, Target = mode}) end
+    if tower then
+        rF:InvokeServer("Troops", "Set", {Troop = tower, Target = mode})
+    else
+        warn("[ERROR] Target failed, tower ID not found:", id)
+    end
 end
 
 function TDS:Ability(id, wave, min, sec)
+    print(("[DEBUG] Ability Activate on Tower #%d at Wave %d, Time %02d:%02d"):format(id, wave, min, sec))
     waitForWaveTime(wave, min, sec)
     local tower = workspace.Towers:GetChildren()[id]
-    if tower then rF:InvokeServer("Troops", "Activate", {Troop = tower}) end
+    if tower then
+        rF:InvokeServer("Troops", "Activate", {Troop = tower})
+    else
+        warn("[ERROR] Ability failed, tower ID not found:", id)
+    end
 end
 
 function TDS:Option(id, name, value, wave, min, sec)
+    print(("[DEBUG] Option Set Tower #%d -> %s = %s at Wave %d, Time %02d:%02d"):format(id, name, tostring(value), wave, min, sec))
     waitForWaveTime(wave, min, sec)
     local tower = workspace.Towers:GetChildren()[id]
     if tower then
@@ -67,23 +84,30 @@ function TDS:Option(id, name, value, wave, min, sec)
             Name = name,
             Value = value
         })
+    else
+        warn("[ERROR] Option failed, tower ID not found:", id)
     end
 end
 
 function TDS:Sell(id, wave, min, sec)
+    print(("[DEBUG] Sell Tower #%d at Wave %d, Time %02d:%02d"):format(id, wave, min, sec))
     waitForWaveTime(wave, min, sec)
     local tower = workspace.Towers:GetChildren()[id]
     if tower then
         rF:InvokeServer("Troops", "Sell", {Troop = tower})
+    else
+        warn("[ERROR] Sell failed, tower ID not found:", id)
     end
 end
 
 function TDS:VoteSkip(wave, min, sec)
+    print(("[DEBUG] VoteSkip at Wave %d, Time %02d:%02d"):format(wave, min, sec))
     waitForWaveTime(wave, min, sec)
     rF:InvokeServer("Voting", "Skip")
 end
 
 function TDS:WaitWave(wave, min, sec)
+    print(("[DEBUG] WaitWave until Wave %d, Time %02d:%02d"):format(wave, min, sec))
     waitForWaveTime(wave, min, sec)
 end
 
