@@ -1,121 +1,52 @@
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local rF = ReplicatedStorage:WaitForChild("RemoteFunction")
-local state = ReplicatedStorage:WaitForChild("State")
-local timer = state:WaitForChild("Timer")
-local player = Players.LocalPlayer
-local PGui = player:WaitForChild("PlayerGui")
-local WaveL = PGui:WaitForChild("ReactGameTopGameDisplay"):WaitForChild("Frame").wave.container.value
+local rF = ReplicatedStorage:WaitForChild("RemoteFunction") -- Replace with your actual RemoteFunction name
 
 local TDS = {}
-local lastKey = ""
 
--- 🕓 WaitWave handler
+local function notify(text)
+    print("[TDS Playback] "..text)
+end
+
+function TDS:Place(towerName, x, y, z, rotation)
+    local pos = Vector3.new(x, y, z)
+    local rot = rotation or CFrame.new()
+    notify("Placing tower: "..towerName)
+    rF:InvokeServer("Place", towerName, pos, rot)
+end
+
+function TDS:Upgrade(towerIndex, path)
+    notify("Upgrading tower index: "..tostring(towerIndex).." path: "..tostring(path or 1))
+    rF:InvokeServer("Upgrade", towerIndex, path or 1)
+end
+
+function TDS:Sell(towerIndex)
+    notify("Selling tower index: "..tostring(towerIndex))
+    rF:InvokeServer("Sell", towerIndex)
+end
+
+function TDS:Ability(towerIndex, abilityName)
+    notify("Activating ability: "..abilityName.." on tower index: "..tostring(towerIndex))
+    rF:InvokeServer("Ability", towerIndex, abilityName)
+end
+
 function TDS:WaitWave(wave, min, sec)
-	local function getWaveTime()
-		local w = tonumber(WaveL.Text:match("%d+")) or 0
-		local t = timer.Value
-		return w, math.floor(t / 60), math.floor(t % 60)
-	end
-
-	while true do
-		local w, m, s = getWaveTime()
-		local currentKey = w .. ":" .. m .. ":" .. s
-		if w > wave or (w == wave and (m > min or (m == min and s >= sec))) then
-			break
-		end
-		if currentKey ~= lastKey then
-			print(string.format("⏳ WaitWave(%d, %d, %d)", w, m, s))
-			lastKey = currentKey
-		end
-		task.wait(0.1)
-	end
+    notify("Waiting for Wave "..wave.." Time: "..min..":"..string.format("%02d", sec))
+    wait(1) -- Just wait 1 sec as placeholder, replace with your own timing logic if needed
 end
 
--- 🧱 Place
-function TDS:Place(towerName, x, y, z, wave, min, sec)
-	self:WaitWave(wave, min, sec)
-	local pos = Vector3.new(x, y, z)
-	rF:InvokeServer("Troops", "Place", {
-		Position = pos,
-		CFrame = CFrame.new(pos)
-	}, towerName)
-	print("✅ Placed", towerName)
+function TDS:Skip()
+    notify("Skipping wave")
+    rF:InvokeServer("Skip")
 end
 
--- 🔼 Upgrade
-function TDS:Upgrade(towerID, wave, min, sec, path, level)
-	self:WaitWave(wave, min, sec)
-	local tower = workspace.Towers:GetChildren()[towerID]
-	if path then
-		rF:InvokeServer("Troops", "Upgrade", "Set", {
-			Troop = tower,
-			Path = path
-		})
-		task.wait(0.2)
-		for i = 1, level do
-			rF:InvokeServer("Troops", "Upgrade", {
-				Troop = tower
-			})
-			task.wait(0.1)
-		end
-	else
-		rF:InvokeServer("Troops", "Upgrade", {
-			Troop = tower
-		})
-	end
-	print("⬆️ Upgraded Tower", towerID)
-end
-
--- 🎯 Target
-function TDS:Target(towerID, mode, wave, min, sec)
-	self:WaitWave(wave, min, sec)
-	local tower = workspace.Towers:GetChildren()[towerID]
-	rF:InvokeServer("Troops", "Set", {
-		Troop = tower,
-		Target = mode
-	})
-	print("🎯 Target Set", mode)
-end
-
--- ⚡ Ability
-function TDS:Ability(towerID, abilityName, wave, min, sec)
-	self:WaitWave(wave, min, sec)
-	local tower = workspace.Towers:GetChildren()[towerID]
-	rF:InvokeServer("Troops", "Activate", "Ability", {
-		Troop = tower,
-		Name = abilityName
-	})
-	print("⚡ Ability", abilityName)
-end
-
--- ⚙️ Option
-function TDS:Option(towerID, optionName, value, wave, min, sec)
-	self:WaitWave(wave, min, sec)
-	local tower = workspace.Towers:GetChildren()[towerID]
-	rF:InvokeServer("Troops", "Option", "Set", {
-		Troop = tower,
-		Name = optionName,
-		Value = value
-	})
-	print("⚙️ Option", optionName, value)
-end
-
--- ❌ Sell
-function TDS:Sell(towerID, wave, min, sec)
-	self:WaitWave(wave, min, sec)
-	local tower = workspace.Towers:GetChildren()[towerID]
-	rF:InvokeServer("Troops", "Sell", {
-		Troop = tower
-	})
-	print("❌ Sold Tower", towerID)
-end
-
--- ✅ Skip Vote
-function TDS:VoteSkip(wave, min, sec)
-	self:WaitWave(wave, min, sec)
-	rF:InvokeServer("Voting", "Skip")
-	print("✅ Voted Skip")
-end
+-- Usage example:
+--[[
+TDS:WaitWave(1, 0, 10)
+TDS:Place("Cowboy", 11.5, 1, 7.7)
+TDS:Upgrade(1, 2)
+TDS:Ability(3, "Call Of Arms")
+TDS:Sell(4)
+TDS:Skip()
+]]
 
 return TDS
