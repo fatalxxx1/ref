@@ -1,113 +1,107 @@
--- MyPlaybackScript.lua
-
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local rF = ReplicatedStorage:WaitForChild("RemoteFunction")
-local State = ReplicatedStorage:WaitForChild("State")
-local Timer = State:WaitForChild("Timer")
-local Wave = Players.LocalPlayer.PlayerGui:WaitForChild("ReactGameTopGameDisplay")
-    .Frame.wave.container.value
+local state = ReplicatedStorage:WaitForChild("State")
+local timer = state:WaitForChild("Timer")
+local player = Players.LocalPlayer
+local WaveLabel = player:WaitForChild("PlayerGui")
+	:WaitForChild("ReactGameTopGameDisplay")
+	:WaitForChild("Frame").wave.container.value
 
 local TDS = {}
-local player = Players.LocalPlayer
+local towers = {}
 
--- Fetch towers owned by local player
-local function getOwnedTowers()
-    local towers = {}
-    for _, t in ipairs(workspace.Towers:GetChildren()) do
-        if t:IsA("Model") and t:FindFirstChild("Owner") and t.Owner.Value == player then
-            table.insert(towers, t)
-        end
-    end
-    return towers
+local function getWaveTime()
+	local wave = tonumber(WaveLabel.Text:match("%d+")) or 0
+	local time = timer.Time.Value
+	local min, sec = math.floor(time / 60), math.floor(time % 60)
+	return wave, min, sec
 end
 
-local function getTowerById(id)
-    return getOwnedTowers()[id]
-end
-
--- Wait until game reaches specific wave and time
 function TDS:WaitWave(targetWave, targetMin, targetSec)
-    repeat task.wait(0.05)
-        local currentWave = tonumber(Wave.Text:match("%d+")) or 0
-        local time = Timer.Value
-        local min, sec = math.floor(time / 60), math.floor(time % 60)
-    until currentWave > targetWave or (currentWave == targetWave and (min > targetMin or (min == targetMin and sec >= targetSec)))
+	while true do
+		task.wait(0.05)
+		local wave, min, sec = getWaveTime()
+
+		if wave > targetWave then
+			break
+		elseif wave == targetWave then
+			if min > targetMin or (min == targetMin and sec >= targetSec) then
+				break
+			end
+		end
+	end
 end
 
--- Place a tower
 function TDS:Place(name, x, y, z, wave, min, sec, rx, ry, rz)
-    self:WaitWave(wave, min, sec)
-    local cframe = CFrame.new(x, y, z) * CFrame.Angles(math.rad(rx or 0), math.rad(ry or 0), math.rad(rz or 0))
-    rF:InvokeServer("Troops", "Place", { Position = cframe.Position, Rotation = cframe.Rotation }, name)
+	self:WaitWave(wave, min, sec)
+	local pos = Vector3.new(x, y, z)
+	local rot = Vector3.new(rx or 0, ry or 0, rz or 0)
+	local model = rF:InvokeServer("Troops", "Place", {Position = pos, Rotation = rot}, name)
+	if model and model:IsA("Model") then
+		table.insert(towers, model)
+	end
 end
 
--- Upgrade a tower
 function TDS:Upgrade(id, wave, min, sec, path, level)
-    self:WaitWave(wave, min, sec)
-    local tower = getTowerById(id)
-    if tower then
-        if path and level then
-            for i = 1, level do
-                rF:InvokeServer("Troops", "Upgrade", "Set", { Troop = tower, Path = path })
-                task.wait(0.05)
-            end
-        else
-            rF:InvokeServer("Troops", "Upgrade", { Troop = tower })
-        end
-    end
+	self:WaitWave(wave, min, sec)
+	local tower = towers[id]
+	if tower then
+		if path then
+			rF:InvokeServer("Troops", "Upgrade", "Set", {
+				Troop = tower,
+				Path = path,
+			})
+		end
+		rF:InvokeServer("Troops", "Upgrade", tower)
+	end
 end
 
--- Sell a tower
 function TDS:Sell(id, wave, min, sec)
-    self:WaitWave(wave, min, sec)
-    local tower = getTowerById(id)
-    if tower then
-        rF:InvokeServer("Troops", "Sell", { Troop = tower })
-    end
+	self:WaitWave(wave, min, sec)
+	local tower = towers[id]
+	if tower then
+		rF:InvokeServer("Troops", "Sell", tower)
+	end
 end
 
--- Use an ability
-function TDS:Ability(id, abilityName, wave, min, sec)
-    self:WaitWave(wave, min, sec)
-    local tower = getTowerById(id)
-    if tower then
-        rF:InvokeServer("Troops", "Activate", {
-            Troop = tower,
-            Name = abilityName
-        })
-    end
-end
-
--- Set targeting mode
 function TDS:Target(id, mode, wave, min, sec)
-    self:WaitWave(wave, min, sec)
-    local tower = getTowerById(id)
-    if tower then
-        rF:InvokeServer("Troops", "Set", {
-            Troop = tower,
-            Target = mode
-        })
-    end
+	self:WaitWave(wave, min, sec)
+	local tower = towers[id]
+	if tower then
+		rF:InvokeServer("Troops", "Set", {
+			Troop = tower,
+			Target = mode
+		})
+	end
 end
 
--- Set option (like hidden detection toggle)
+function TDS:Ability(id, abilityName, wave, min, sec)
+	self:WaitWave(wave, min, sec)
+	local tower = towers[id]
+	if tower then
+		rF:InvokeServer("Troops", "Activate", {
+			Troop = tower,
+			Name = abilityName
+		})
+	end
+end
+
 function TDS:Option(id, name, value, wave, min, sec)
-    self:WaitWave(wave, min, sec)
-    local tower = getTowerById(id)
-    if tower then
-        rF:InvokeServer("Troops", "Option", "Set", {
-            Troop = tower,
-            Name = name,
-            Value = value
-        })
-    end
+	self:WaitWave(wave, min, sec)
+	local tower = towers[id]
+	if tower then
+		rF:InvokeServer("Troops", "Option", "Set", {
+			Troop = tower,
+			Name = name,
+			Value = value
+		})
+	end
 end
 
--- Vote to skip wave
 function TDS:VoteSkip(wave, min, sec)
-    self:WaitWave(wave, min, sec)
-    rF:InvokeServer("Voting", "Skip")
+	self:WaitWave(wave, min, sec)
+	rF:InvokeServer("Voting", "Skip")
 end
 
 return TDS
