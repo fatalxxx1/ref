@@ -1,146 +1,113 @@
-repeat task.wait() until game:IsLoaded()
+-- MyPlaybackScript.lua
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 local rF = ReplicatedStorage:WaitForChild("RemoteFunction")
 local State = ReplicatedStorage:WaitForChild("State")
 local Timer = State:WaitForChild("Timer")
-local WaveGui = Players.LocalPlayer:WaitForChild("PlayerGui")
-    :WaitForChild("ReactGameTopGameDisplay")
-    :WaitForChild("Frame").wave.container:WaitForChild("value")
-
-local function getCurrentTime()
-    local wave = tonumber(WaveGui.Text:match("%d+")) or 0
-    local t = Timer.Time.Value
-    return wave, math.floor(t / 60), math.floor(t % 60)
-end
-
-local function waitForWaveTime(wave, min, sec)
-    while true do
-        local curWave, curMin, curSec = getCurrentTime()
-        if curWave > wave or (curWave == wave and (curMin > min or (curMin == min and curSec >= sec))) then
-            break
-        end
-        task.wait()
-    end
-end
+local Wave = Players.LocalPlayer.PlayerGui:WaitForChild("ReactGameTopGameDisplay")
+    .Frame.wave.container.value
 
 local TDS = {}
+local player = Players.LocalPlayer
 
-function TDS:Place(name, x, y, z, wave, min, sec, useRot, rotX, rotY, rotZ, usePath)
-    print(("[DEBUG] Placing %s at (%.2f, %.2f, %.2f) [Wave %d @ %02d:%02d]"):format(name, x, y, z, wave, min, sec))
-    waitForWaveTime(wave, min, sec)
-
-    local cf = CFrame.new(x, y, z)
-    if useRot then
-        cf = cf * CFrame.Angles(math.rad(rotX), math.rad(rotY), math.rad(rotZ))
+-- Fetch towers owned by local player
+local function getOwnedTowers()
+    local towers = {}
+    for _, t in ipairs(workspace.Towers:GetChildren()) do
+        if t:IsA("Model") and t:FindFirstChild("Owner") and t.Owner.Value == player then
+            table.insert(towers, t)
+        end
     end
-
-    local success, err = pcall(function()
-        rF:InvokeServer("Troops", "Place", {
-            Position = cf.Position,
-            Rotation = cf - cf.Position,
-            Path = usePath and "Path1" or nil
-        }, name)
-    end)
-
-    if not success then
-        warn("[ERROR] Place failed:", err)
-    end
+    return towers
 end
 
-function TDS:Upgrade(id, wave, min, sec)
-    print(("[DEBUG] Upgrading tower #%d [Wave %d @ %02d:%02d]"):format(id, wave, min, sec))
-    waitForWaveTime(wave, min, sec)
+local function getTowerById(id)
+    return getOwnedTowers()[id]
+end
 
-    local tower = workspace.Towers:GetChildren()[id]
+-- Wait until game reaches specific wave and time
+function TDS:WaitWave(targetWave, targetMin, targetSec)
+    repeat task.wait(0.05)
+        local currentWave = tonumber(Wave.Text:match("%d+")) or 0
+        local time = Timer.Value
+        local min, sec = math.floor(time / 60), math.floor(time % 60)
+    until currentWave > targetWave or (currentWave == targetWave and (min > targetMin or (min == targetMin and sec >= targetSec)))
+end
+
+-- Place a tower
+function TDS:Place(name, x, y, z, wave, min, sec, rx, ry, rz)
+    self:WaitWave(wave, min, sec)
+    local cframe = CFrame.new(x, y, z) * CFrame.Angles(math.rad(rx or 0), math.rad(ry or 0), math.rad(rz or 0))
+    rF:InvokeServer("Troops", "Place", { Position = cframe.Position, Rotation = cframe.Rotation }, name)
+end
+
+-- Upgrade a tower
+function TDS:Upgrade(id, wave, min, sec, path, level)
+    self:WaitWave(wave, min, sec)
+    local tower = getTowerById(id)
     if tower then
-        local success, err = pcall(function()
-            rF:InvokeServer("Troops", "Upgrade", tower)
-        end)
-        if not success then warn("[ERROR] Upgrade failed:", err) end
-    else
-        warn("[WARN] Tower not found for Upgrade:", id)
+        if path and level then
+            for i = 1, level do
+                rF:InvokeServer("Troops", "Upgrade", "Set", { Troop = tower, Path = path })
+                task.wait(0.05)
+            end
+        else
+            rF:InvokeServer("Troops", "Upgrade", { Troop = tower })
+        end
     end
 end
 
-function TDS:Target(id, mode, wave, min, sec)
-    print(("[DEBUG] Setting target mode '%s' on tower #%d [Wave %d @ %02d:%02d]"):format(mode, id, wave, min, sec))
-    waitForWaveTime(wave, min, sec)
-
-    local tower = workspace.Towers:GetChildren()[id]
-    if tower then
-        local success, err = pcall(function()
-            rF:InvokeServer("Troops", "Set", {Troop = tower, Target = mode})
-        end)
-        if not success then warn("[ERROR] Target failed:", err) end
-    else
-        warn("[WARN] Tower not found for Target:", id)
-    end
-end
-
-function TDS:Ability(id, wave, min, sec)
-    print(("[DEBUG] Activating ability on tower #%d [Wave %d @ %02d:%02d]"):format(id, wave, min, sec))
-    waitForWaveTime(wave, min, sec)
-
-    local tower = workspace.Towers:GetChildren()[id]
-    if tower then
-        local success, err = pcall(function()
-            rF:InvokeServer("Troops", "Activate", {Troop = tower})
-        end)
-        if not success then warn("[ERROR] Ability failed:", err) end
-    else
-        warn("[WARN] Tower not found for Ability:", id)
-    end
-end
-
-function TDS:Option(id, name, value, wave, min, sec)
-    print(("[DEBUG] Setting option '%s' = '%s' on tower #%d [Wave %d @ %02d:%02d]"):format(name, tostring(value), id, wave, min, sec))
-    waitForWaveTime(wave, min, sec)
-
-    local tower = workspace.Towers:GetChildren()[id]
-    if tower then
-        local success, err = pcall(function()
-            rF:InvokeServer("Troops", "Option", "Set", {
-                Troop = tower,
-                Name = name,
-                Value = value
-            })
-        end)
-        if not success then warn("[ERROR] Option failed:", err) end
-    else
-        warn("[WARN] Tower not found for Option:", id)
-    end
-end
-
+-- Sell a tower
 function TDS:Sell(id, wave, min, sec)
-    print(("[DEBUG] Selling tower #%d [Wave %d @ %02d:%02d]"):format(id, wave, min, sec))
-    waitForWaveTime(wave, min, sec)
-
-    local tower = workspace.Towers:GetChildren()[id]
+    self:WaitWave(wave, min, sec)
+    local tower = getTowerById(id)
     if tower then
-        local success, err = pcall(function()
-            rF:InvokeServer("Troops", "Sell", {Troop = tower})
-        end)
-        if not success then warn("[ERROR] Sell failed:", err) end
-    else
-        warn("[WARN] Tower not found for Sell:", id)
+        rF:InvokeServer("Troops", "Sell", { Troop = tower })
     end
 end
 
-function TDS:VoteSkip(wave, min, sec)
-    print(("[DEBUG] Voting to skip wave [Wave %d @ %02d:%02d]"):format(wave, min, sec))
-    waitForWaveTime(wave, min, sec)
-
-    local success, err = pcall(function()
-        rF:InvokeServer("Voting", "Skip")
-    end)
-    if not success then warn("[ERROR] VoteSkip failed:", err) end
+-- Use an ability
+function TDS:Ability(id, abilityName, wave, min, sec)
+    self:WaitWave(wave, min, sec)
+    local tower = getTowerById(id)
+    if tower then
+        rF:InvokeServer("Troops", "Activate", {
+            Troop = tower,
+            Name = abilityName
+        })
+    end
 end
 
-function TDS:WaitWave(wave, min, sec)
-    print(("[DEBUG] Waiting for Wave %d @ %02d:%02d"):format(wave, min, sec))
-    waitForWaveTime(wave, min, sec)
+-- Set targeting mode
+function TDS:Target(id, mode, wave, min, sec)
+    self:WaitWave(wave, min, sec)
+    local tower = getTowerById(id)
+    if tower then
+        rF:InvokeServer("Troops", "Set", {
+            Troop = tower,
+            Target = mode
+        })
+    end
+end
+
+-- Set option (like hidden detection toggle)
+function TDS:Option(id, name, value, wave, min, sec)
+    self:WaitWave(wave, min, sec)
+    local tower = getTowerById(id)
+    if tower then
+        rF:InvokeServer("Troops", "Option", "Set", {
+            Troop = tower,
+            Name = name,
+            Value = value
+        })
+    end
+end
+
+-- Vote to skip wave
+function TDS:VoteSkip(wave, min, sec)
+    self:WaitWave(wave, min, sec)
+    rF:InvokeServer("Voting", "Skip")
 end
 
 return TDS
