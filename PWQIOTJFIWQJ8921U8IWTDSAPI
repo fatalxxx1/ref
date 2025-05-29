@@ -1,6 +1,3 @@
--- ✅ TDS Strategy Player API
-
-local TDS = {}
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local rF = ReplicatedStorage:WaitForChild("RemoteFunction")
@@ -8,107 +5,117 @@ local state = ReplicatedStorage:WaitForChild("State")
 local timer = state:WaitForChild("Timer")
 local player = Players.LocalPlayer
 local PGui = player:WaitForChild("PlayerGui")
-local WaveLabel = PGui:WaitForChild("ReactGameTopGameDisplay"):WaitForChild("Frame")
-	:WaitForChild("wave").container:WaitForChild("value")
+local WaveL = PGui:WaitForChild("ReactGameTopGameDisplay"):WaitForChild("Frame").wave.container.value
 
-local function getWave()
-	local waveText = WaveLabel.Text
-	local wave = tonumber(waveText:match("%d+")) or 0
-	return wave
-end
+local TDS = {}
+local lastKey = ""
 
-local function getTime()
-	local t = timer.Time.Value
-	return math.floor(t / 60), math.floor(t % 60)
-end
+-- 🕓 WaitWave handler
+function TDS:WaitWave(wave, min, sec)
+	local function getWaveTime()
+		local w = tonumber(WaveL.Text:match("%d+")) or 0
+		local t = timer.Value
+		return w, math.floor(t / 60), math.floor(t % 60)
+	end
 
--- ✅ Wave Wait Function
-function TDS:WaitWave(waveGoal, minGoal, secGoal)
 	while true do
-		task.wait(0.05)
-		local wave = getWave()
-		local min, sec = getTime()
-		if wave > waveGoal then
+		local w, m, s = getWaveTime()
+		local currentKey = w .. ":" .. m .. ":" .. s
+		if w > wave or (w == wave and (m > min or (m == min and s >= sec))) then
 			break
-		elseif wave == waveGoal then
-			if min > minGoal or (min == minGoal and sec >= secGoal) then
-				break
-			end
 		end
+		if currentKey ~= lastKey then
+			print(string.format("⏳ WaitWave(%d, %d, %d)", w, m, s))
+			lastKey = currentKey
+		end
+		task.wait(0.1)
 	end
 end
 
--- ✅ Place Tower
-function TDS:Place(towerName, x, y, z, wave, min, sec, rx, ry, rz)
+-- 🧱 Place
+function TDS:Place(towerName, x, y, z, wave, min, sec)
 	self:WaitWave(wave, min, sec)
-	local cframe = CFrame.new(x, y, z) * CFrame.Angles(math.rad(rx), math.rad(ry), math.rad(rz))
+	local pos = Vector3.new(x, y, z)
 	rF:InvokeServer("Troops", "Place", {
-		Position = Vector3.new(x, y, z),
-		CFrame = cframe,
-		Rotation = Vector3.new(rx, ry, rz)
+		Position = pos,
+		CFrame = CFrame.new(pos)
 	}, towerName)
+	print("✅ Placed", towerName)
 end
 
--- ✅ Upgrade Tower (with optional path and level)
-function TDS:Upgrade(id, wave, min, sec, path, level)
+-- 🔼 Upgrade
+function TDS:Upgrade(towerID, wave, min, sec, path, level)
 	self:WaitWave(wave, min, sec)
-	if path and level then
+	local tower = workspace.Towers:GetChildren()[towerID]
+	if path then
 		rF:InvokeServer("Troops", "Upgrade", "Set", {
-			Troop = workspace.Towers:GetChildren()[id],
+			Troop = tower,
 			Path = path
 		})
+		task.wait(0.2)
 		for i = 1, level do
 			rF:InvokeServer("Troops", "Upgrade", {
-				Troop = workspace.Towers:GetChildren()[id]
+				Troop = tower
 			})
+			task.wait(0.1)
 		end
 	else
 		rF:InvokeServer("Troops", "Upgrade", {
-			Troop = workspace.Towers:GetChildren()[id]
+			Troop = tower
 		})
 	end
+	print("⬆️ Upgraded Tower", towerID)
 end
 
--- ✅ Sell Tower
-function TDS:Sell(id, wave, min, sec)
+-- 🎯 Target
+function TDS:Target(towerID, mode, wave, min, sec)
 	self:WaitWave(wave, min, sec)
-	rF:InvokeServer("Troops", "Sell", {
-		Troop = workspace.Towers:GetChildren()[id]
-	})
-end
-
--- ✅ Ability Activation
-function TDS:Ability(id, name, wave, min, sec)
-	self:WaitWave(wave, min, sec)
-	rF:InvokeServer("Troops", "Ability", "Activate", {
-		Troop = workspace.Towers:GetChildren()[id],
-		Name = name
-	})
-end
-
--- ✅ Target Mode Change
-function TDS:Target(id, mode, wave, min, sec)
-	self:WaitWave(wave, min, sec)
-	rF:InvokeServer("Troops", "Target", {
-		Troop = workspace.Towers:GetChildren()[id],
+	local tower = workspace.Towers:GetChildren()[towerID]
+	rF:InvokeServer("Troops", "Set", {
+		Troop = tower,
 		Target = mode
 	})
+	print("🎯 Target Set", mode)
 end
 
--- ✅ Set Option
-function TDS:Option(id, key, val, wave, min, sec)
+-- ⚡ Ability
+function TDS:Ability(towerID, abilityName, wave, min, sec)
 	self:WaitWave(wave, min, sec)
-	rF:InvokeServer("Troops", "Option", "Set", {
-		Troop = workspace.Towers:GetChildren()[id],
-		Name = key,
-		Value = val
+	local tower = workspace.Towers:GetChildren()[towerID]
+	rF:InvokeServer("Troops", "Activate", "Ability", {
+		Troop = tower,
+		Name = abilityName
 	})
+	print("⚡ Ability", abilityName)
 end
 
--- ✅ Vote Skip
+-- ⚙️ Option
+function TDS:Option(towerID, optionName, value, wave, min, sec)
+	self:WaitWave(wave, min, sec)
+	local tower = workspace.Towers:GetChildren()[towerID]
+	rF:InvokeServer("Troops", "Option", "Set", {
+		Troop = tower,
+		Name = optionName,
+		Value = value
+	})
+	print("⚙️ Option", optionName, value)
+end
+
+-- ❌ Sell
+function TDS:Sell(towerID, wave, min, sec)
+	self:WaitWave(wave, min, sec)
+	local tower = workspace.Towers:GetChildren()[towerID]
+	rF:InvokeServer("Troops", "Sell", {
+		Troop = tower
+	})
+	print("❌ Sold Tower", towerID)
+end
+
+-- ✅ Skip Vote
 function TDS:VoteSkip(wave, min, sec)
 	self:WaitWave(wave, min, sec)
 	rF:InvokeServer("Voting", "Skip")
+	print("✅ Voted Skip")
 end
 
 return TDS
