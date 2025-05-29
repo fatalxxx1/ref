@@ -1,52 +1,108 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local rF = ReplicatedStorage:WaitForChild("RemoteFunction") -- Replace with your actual RemoteFunction name
+local rF = ReplicatedStorage.RemoteFunction
+local WaveValue = workspace:WaitForChild("WaveValue")
 
 local TDS = {}
+local Notifications = true
 
 local function notify(text)
-    print("[TDS Playback] "..text)
+    if Notifications and setclipboard then
+        print("[TDS Playback] " .. text)
+    end
 end
 
-function TDS:Place(towerName, x, y, z, rotation)
-    local pos = Vector3.new(x, y, z)
-    local rot = rotation or CFrame.new()
-    notify("Placing tower: "..towerName)
-    rF:InvokeServer("Place", towerName, pos, rot)
+function TDS:Mode(name)
+    notify("Set Mode: " .. tostring(name))
 end
 
-function TDS:Upgrade(towerIndex, path)
-    notify("Upgrading tower index: "..tostring(towerIndex).." path: "..tostring(path or 1))
-    rF:InvokeServer("Upgrade", towerIndex, path or 1)
+function TDS:Map(name, solo, mode)
+    notify("Set Map: " .. tostring(name))
 end
 
-function TDS:Sell(towerIndex)
-    notify("Selling tower index: "..tostring(towerIndex))
-    rF:InvokeServer("Sell", towerIndex)
+function TDS:Loadout(...)
+    notify("Loadout Set: " .. table.concat({...}, ", "))
 end
 
-function TDS:Ability(towerIndex, abilityName)
-    notify("Activating ability: "..abilityName.." on tower index: "..tostring(towerIndex))
-    rF:InvokeServer("Ability", towerIndex, abilityName)
+function TDS:Place(tower, x, y, z, wave, min, sec, inbetween)
+    TDS:WaitWave(wave, min, sec)
+    notify("Placing: " .. tower)
+    local result = rF:InvokeServer("Troops", "Place", tower, Vector3.new(x, y, z))
+    return result
+end
+
+function TDS:Upgrade(towerIndex, wave, min, sec, inbetween, path)
+    TDS:WaitWave(wave, min, sec)
+    notify("Upgrading: Tower " .. tostring(towerIndex))
+    local args = {"Troops", "Upgrade", towerIndex}
+    if path then
+        table.insert(args, "Set")
+        table.insert(args, path)
+    end
+    rF:InvokeServer(unpack(args))
+end
+
+function TDS:Sell(towerIndex, wave, min, sec, inbetween)
+    TDS:WaitWave(wave, min, sec)
+    notify("Selling: Tower " .. tostring(towerIndex))
+    rF:InvokeServer("Troops", "Sell", towerIndex)
+end
+
+function TDS:VoteSkip()
+    notify("Vote Skipping")
+    rF:InvokeServer("VoteSkip")
+end
+
+function TDS:AutoVoteSkip()
+    notify("Auto VoteSkip Running")
+    task.spawn(function()
+        while true do
+            task.wait(1)
+            TDS:VoteSkip()
+        end
+    end)
+end
+
+function TDS:Ability(towerIndex, abilityName, wave, min, sec, inbetween, data)
+    TDS:WaitWave(wave, min, sec)
+    notify("Activating Ability: " .. abilityName)
+    rF:InvokeServer("Troops", "Ability", towerIndex, abilityName, data or {})
+end
+
+function TDS:Target(towerIndex, targetMode, wave, min, sec, inbetween)
+    TDS:WaitWave(wave, min, sec)
+    notify("Setting Target: " .. targetMode)
+    rF:InvokeServer("Troops", "Target", towerIndex, targetMode)
+end
+
+function TDS:AutoChain(t1, t2, t3, wave, min, sec, inbetween)
+    TDS:WaitWave(wave, min, sec)
+    notify("Auto Chaining")
+    rF:InvokeServer("Troops", "AutoChain", t1, t2, t3)
+end
+
+function TDS:SellAllFarms(wave, min, sec, inbetween)
+    TDS:WaitWave(wave, min, sec)
+    notify("Selling All Farms")
+    rF:InvokeServer("Troops", "SellAllFarms")
+end
+
+function TDS:Option(towerIndex, name, value, wave, min, sec, inbetween)
+    TDS:WaitWave(wave, min, sec)
+    notify("Setting Option: " .. name)
+    rF:InvokeServer("Troops", "Option", towerIndex, name, value)
+end
+
+function TDS:Wait(seconds)
+    task.wait(seconds)
 end
 
 function TDS:WaitWave(wave, min, sec)
-    notify("Waiting for Wave "..wave.." Time: "..min..":"..string.format("%02d", sec))
-    wait(1) -- Just wait 1 sec as placeholder, replace with your own timing logic if needed
+    local target = (min * 60) + sec
+    repeat
+        local current = WaveValue.Value
+        if current > wave then break end
+        task.wait(0.1)
+    until WaveValue.Value >= wave
 end
-
-function TDS:Skip()
-    notify("Skipping wave")
-    rF:InvokeServer("Skip")
-end
-
--- Usage example:
---[[
-TDS:WaitWave(1, 0, 10)
-TDS:Place("Cowboy", 11.5, 1, 7.7)
-TDS:Upgrade(1, 2)
-TDS:Ability(3, "Call Of Arms")
-TDS:Sell(4)
-TDS:Skip()
-]]
 
 return TDS
