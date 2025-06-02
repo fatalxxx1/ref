@@ -1,108 +1,125 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local rF = ReplicatedStorage.RemoteFunction
-local WaveValue = workspace:WaitForChild("WaveValue")
+_G.TDS = (function()
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local rF = ReplicatedStorage:WaitForChild("RemoteFunction")
+    local state = ReplicatedStorage:WaitForChild("State")
+    local timer = state:WaitForChild("Timer")
+    local player = Players.LocalPlayer
 
-local TDS = {}
-local Notifications = true
+    local towers = {}
 
-local function notify(text)
-    if Notifications and setclipboard then
-        print("[TDS Playback] " .. text)
+    local function getWave()
+        return state:FindFirstChild("Wave") and state.Wave.Value or 0
     end
-end
 
-function TDS:Mode(name)
-    notify("Set Mode: " .. tostring(name))
-end
-
-function TDS:Map(name, solo, mode)
-    notify("Set Map: " .. tostring(name))
-end
-
-function TDS:Loadout(...)
-    notify("Loadout Set: " .. table.concat({...}, ", "))
-end
-
-function TDS:Place(tower, x, y, z, wave, min, sec, inbetween)
-    TDS:WaitWave(wave, min, sec)
-    notify("Placing: " .. tower)
-    local result = rF:InvokeServer("Troops", "Place", tower, Vector3.new(x, y, z))
-    return result
-end
-
-function TDS:Upgrade(towerIndex, wave, min, sec, inbetween, path)
-    TDS:WaitWave(wave, min, sec)
-    notify("Upgrading: Tower " .. tostring(towerIndex))
-    local args = {"Troops", "Upgrade", towerIndex}
-    if path then
-        table.insert(args, "Set")
-        table.insert(args, path)
+    local function getTime()
+        return timer.Time.Value or 0
     end
-    rF:InvokeServer(unpack(args))
-end
 
-function TDS:Sell(towerIndex, wave, min, sec, inbetween)
-    TDS:WaitWave(wave, min, sec)
-    notify("Selling: Tower " .. tostring(towerIndex))
-    rF:InvokeServer("Troops", "Sell", towerIndex)
-end
+    local function waitForWave(wave, min, sec)
+        repeat task.wait(0.1)
+            local currentWave = getWave()
+            local time = getTime()
+            local currentMin = math.floor(time / 60)
+            local currentSec = math.floor(time % 60)
+        until currentWave > wave or (currentWave == wave and (currentMin > min or (currentMin == min and currentSec >= sec)))
+    end
 
-function TDS:VoteSkip()
-    notify("Vote Skipping")
-    rF:InvokeServer("VoteSkip")
-end
+    local TDS = {}
 
-function TDS:AutoVoteSkip()
-    notify("Auto VoteSkip Running")
-    task.spawn(function()
-        while true do
-            task.wait(1)
-            TDS:VoteSkip()
+    function TDS.WaitWave(wave, min, sec)
+        waitForWave(wave, min, sec)
+    end
+
+    function TDS.Place(name, x, y, z, wave, min, sec, pathing, rx, ry, rz)
+        waitForWave(wave, min, sec)
+        local result = rF:InvokeServer("Troops", "Place", {
+            Position = Vector3.new(x, y, z),
+            Rotation = Vector3.new(rx or 0, ry or 0, rz or 0),
+            Pathing = pathing == true or pathing == "true"
+        }, name)
+        if typeof(result) == "Instance" and result:IsA("Model") then
+            table.insert(towers, result)
+        else
+            warn("Failed to place:", name)
         end
-    end)
-end
+    end
 
-function TDS:Ability(towerIndex, abilityName, wave, min, sec, inbetween, data)
-    TDS:WaitWave(wave, min, sec)
-    notify("Activating Ability: " .. abilityName)
-    rF:InvokeServer("Troops", "Ability", towerIndex, abilityName, data or {})
-end
+    function TDS.Upgrade(id, wave, min, sec)
+        waitForWave(wave, min, sec)
+        local tower = towers[id]
+        if tower then
+            rF:InvokeServer("Troops", "Upgrade", nil, { Troop = tower })
+        end
+    end
 
-function TDS:Target(towerIndex, targetMode, wave, min, sec, inbetween)
-    TDS:WaitWave(wave, min, sec)
-    notify("Setting Target: " .. targetMode)
-    rF:InvokeServer("Troops", "Target", towerIndex, targetMode)
-end
+    function TDS.Sell(id, wave, min, sec)
+        waitForWave(wave, min, sec)
+        local tower = towers[id]
+        if tower then
+            rF:InvokeServer("Troops", "Sell", tower)
+        end
+    end
 
-function TDS:AutoChain(t1, t2, t3, wave, min, sec, inbetween)
-    TDS:WaitWave(wave, min, sec)
-    notify("Auto Chaining")
-    rF:InvokeServer("Troops", "AutoChain", t1, t2, t3)
-end
+    function TDS.Ability(id, wave, min, sec)
+        waitForWave(wave, min, sec)
+        local tower = towers[id]
+        if tower then
+            rF:InvokeServer("Troops", "Abilities", nil, { Troop = tower })
+        end
+    end
 
-function TDS:SellAllFarms(wave, min, sec, inbetween)
-    TDS:WaitWave(wave, min, sec)
-    notify("Selling All Farms")
-    rF:InvokeServer("Troops", "SellAllFarms")
-end
+    function TDS.Target(id, mode, wave, min, sec)
+        waitForWave(wave, min, sec)
+        local tower = towers[id]
+        if tower then
+            rF:InvokeServer("Troops", "Target", "Set", { Troop = tower, Target = mode })
+        end
+    end
 
-function TDS:Option(towerIndex, name, value, wave, min, sec, inbetween)
-    TDS:WaitWave(wave, min, sec)
-    notify("Setting Option: " .. name)
-    rF:InvokeServer("Troops", "Option", towerIndex, name, value)
-end
+    function TDS.Option(id, opt, val, wave, min, sec)
+        waitForWave(wave, min, sec)
+        local tower = towers[id]
+        if tower then
+            rF:InvokeServer("Troops", "Option", "Set", { Troop = tower, Name = opt, Value = val })
+        end
+    end
 
-function TDS:Wait(seconds)
-    task.wait(seconds)
-end
+    function TDS.VoteSkip(wave, min, sec)
+        waitForWave(wave, min, sec)
+        rF:InvokeServer("Voting", "Skip")
+    end
 
-function TDS:WaitWave(wave, min, sec)
-    local target = (min * 60) + sec
-    repeat
-        local current = WaveValue.Value
-        if current > wave then break end
-        task.wait(0.1)
-    until WaveValue.Value >= wave
-end
+    function TDS.Play(fileName)
+        if not isfile or not isfile(fileName) then
+            warn("Strategy file not found:", fileName)
+            return
+        end
+        local lines = readfile(fileName):split("\n")
+        for _, line in ipairs(lines) do
+            local func, args = line:match("TDS:(%w+)%((.*)%)")
+            if func and TDS[func] then
+                local parsed = {}
+                for val in args:gmatch('[^,]+') do
+                    val = val:gsub("^%s+", ""):gsub("%s+$", "")
+                    if val:match('^".*"$') then
+                        table.insert(parsed, val:sub(2, -2))
+                    elseif val == "true" then
+                        table.insert(parsed, true)
+                    elseif val == "false" then
+                        table.insert(parsed, false)
+                    else
+                        table.insert(parsed, tonumber(val))
+                    end
+                end
+                task.spawn(function()
+                    pcall(function()
+                        TDS[func](table.unpack(parsed))
+                    end)
+                end)
+            end
+        end
+    end
 
-return TDS
+    return TDS
+end)()
